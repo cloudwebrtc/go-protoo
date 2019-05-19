@@ -22,7 +22,7 @@ type RejectFunc func(errorCode int, errorReason string)
 */
 type Request struct {
 	Request bool                   `json:"request"`
-	Id      int                `json:"id"`
+	Id      int                    `json:"id"`
 	Method  string                 `json:"method"`
 	Data    map[string]interface{} `json:"data"`
 }
@@ -40,10 +40,10 @@ type Request struct {
 }
 */
 type Response struct {
-	Response bool                  `json:"response"`
-	Id      int                `json:"id"`
-	Ok      bool                   `json:"ok"`
-	Data    map[string]interface{} `json:"data"`
+	Response bool                   `json:"response"`
+	Id       int                    `json:"id"`
+	Ok       bool                   `json:"ok"`
+	Data     map[string]interface{} `json:"data"`
 }
 
 /*
@@ -57,12 +57,13 @@ type Response struct {
 }
 */
 type ResponseError struct {
-	Response   bool         `json:"response"`
-	Id        int       `json:"id"`
-	Ok        bool          `json:"ok"`
-	ErrorCode int           `json:"errorCode"`
-	ErrorReason string      `json:"errorReason"`
+	Response    bool   `json:"response"`
+	Id          int    `json:"id"`
+	Ok          bool   `json:"ok"`
+	ErrorCode   int    `json:"errorCode"`
+	ErrorReason string `json:"errorReason"`
 }
+
 /*
 * Notification
 {
@@ -75,19 +76,18 @@ type ResponseError struct {
 }
 */
 type Notification struct {
-	Notification bool              `json:"notification"`
-	Method  string                 `json:"method"`
-	Data    map[string]interface{} `json:"data"`
+	Notification bool                   `json:"notification"`
+	Method       string                 `json:"method"`
+	Data         map[string]interface{} `json:"data"`
 }
-
 
 func RandInt(min, max int) int {
-    if min >= max || min == 0 || max == 0 {
-        return max
-    }
-    return rand.Intn(max-min) + min
+	if min >= max || min == 0 || max == 0 {
+		return max
+	}
+	return rand.Intn(max-min) + min
 }
 
- func GenerateRandomNumber() int {
+func GenerateRandomNumber() int {
 	return RandInt(1000000, 9999999)
- }
+}
