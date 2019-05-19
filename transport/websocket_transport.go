@@ -13,8 +13,7 @@ const pingPeriod = 5 * time.Second
 
 type WebSocketTransport struct {
 	emission.Emitter
-	socket  *websocket.Conn
-	msgType int
+	socket *websocket.Conn
 }
 
 func NewWebSocketTransport(socket *websocket.Conn) *WebSocketTransport {
@@ -37,8 +36,7 @@ func (transport *WebSocketTransport) ReadMessage() {
 	var c = transport.socket
 	go func() {
 		for {
-			mt, message, err := c.ReadMessage()
-			transport.msgType = mt
+			_, message, err := c.ReadMessage()
 			if err != nil {
 				logger.Warnf("Got error:", err)
 				if c, k := err.(*websocket.CloseError); k {
@@ -76,7 +74,7 @@ func (transport *WebSocketTransport) ReadMessage() {
  */
 func (transport *WebSocketTransport) Send(message string) error {
 	logger.Infof("Send data: %s", message)
-	return transport.socket.WriteMessage(transport.msgType, []byte(message))
+	return transport.socket.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
 /*

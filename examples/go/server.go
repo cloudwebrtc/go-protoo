@@ -36,7 +36,7 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 
 		method := request["method"]
 
-		/*handle login and offer reequest*/
+		/*handle login and offer request*/
 		if method == "login" {
 			accept(JsonEncode(`{"name":"xxxx","status":"login"}`))
 		} else if method == "offer" {
@@ -77,5 +77,5 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 func main() {
 	testRoom = room.NewRoom("room1")
 	protooServer := server.NewWebSocketServer(handleNewWebSocket)
-	protooServer.Bind("0.0.0.0", "8443", "examples/certs/cert.pem", "examples/certs/key.pem")
+	protooServer.Bind("0.0.0.0", "8443", "../certs/cert.pem", "../certs/key.pem")
 }
