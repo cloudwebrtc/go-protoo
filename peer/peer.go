@@ -42,6 +42,7 @@ func NewPeer(id string, transport *transport.WebSocketTransport) *Peer {
 
 func (peer *Peer) Close() {
 	peer.transport.Close()
+	peer.Emit("close")
 }
 
 func (peer *Peer) ID() string {

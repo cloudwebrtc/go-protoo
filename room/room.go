@@ -1,7 +1,7 @@
 package room
 
 import (
-	"fmt"
+	"protoo/logger"
 	"protoo/peer"
 	"protoo/transport"
 )
@@ -9,12 +9,14 @@ import (
 type Room struct {
 	peers  map[string]*peer.Peer
 	closed bool
+	id     string
 }
 
-func NewRoom() *Room {
+func NewRoom(roomId string) *Room {
 	return &Room{
 		peers:  make(map[string]*peer.Peer),
 		closed: false,
+		id:     roomId,
 	}
 }
 
@@ -31,14 +33,29 @@ func (room *Room) GetPeers() map[string]*peer.Peer {
 	return room.peers
 }
 
+func (room *Room) ID() string {
+	return room.id
+}
+
 func (room *Room) HasPeer(peerId string) bool {
 	_, ok := room.peers[peerId]
 	return ok
 }
 
-func (room *Room) Close() {
+func (room *Room) Notify(from *peer.Peer, method string, data map[string]interface{}) {
 	for id, peer := range room.peers {
-		fmt.Println("Close peer :" + id)
+		//send to other peers
+		if id != from.ID() {
+			peer.Notify(method, data)
+		}
+	}
+}
+
+func (room *Room) Close() {
+	logger.Warnf("Close all peers !")
+	for id, peer := range room.peers {
+		logger.Warnf("Close => peer(%s).", id)
 		peer.Close()
 	}
+	room.closed = true
 }

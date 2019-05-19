@@ -82,6 +82,6 @@ func (transport *WebSocketTransport) Send(message string) error {
 * Close connection.
  */
 func (transport *WebSocketTransport) Close() {
-	logger.Infof("Close ws!")
+	logger.Infof("Close transport: ", transport)
 	transport.socket.Close()
 }

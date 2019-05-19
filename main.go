@@ -25,8 +25,10 @@ var testRoom *room.Room
 
 func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.Request) {
 
+	//https://127.0.0.1:8443/ws?peer-id=xxxxx&room-id=room1
 	vars := request.URL.Query()
 	peerId := vars["peer-id"][0]
+	//roomId := vars["room-id"][0]
 
 	peer := testRoom.CreatePeer(peerId, transport)
 
@@ -45,6 +47,8 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 		peer.Request("kick", JsonEncode(`{"name":"xxxx","why":"I don't like you"}`),
 			func(result map[string]interface{}) {
 				logger.Infof("kick success: =>  %s", result)
+				// close transport
+				peer.Close()
 			},
 			func(code int, err string) {
 				logger.Infof("kick reject: %d => %s", code, err)
@@ -56,7 +60,7 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 	}
 
 	handleClose := func() {
-		logger.Infof("handleClose => %s", peer.ID())
+		logger.Infof("handleClose => peer (%s) ", peer.ID())
 	}
 
 	peer.On("request", handleRequest)
@@ -65,7 +69,7 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 }
 
 func main() {
-	testRoom = room.NewRoom()
+	testRoom = room.NewRoom("room1")
 	protooServer := server.NewWebSocketServer(handleNewWebSocket)
 	protooServer.Bind("0.0.0.0", "8443")
 }
