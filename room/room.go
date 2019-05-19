@@ -20,6 +20,9 @@ func NewRoom() *Room {
 
 func (room *Room) CreatePeer(peerId string, transport *transport.WebSocketTransport) *peer.Peer {
 	newPeer := peer.NewPeer(peerId, transport)
+	newPeer.On("close", func() {
+		delete(room.peers, peerId)
+	})
 	room.peers[peerId] = newPeer
 	return newPeer
 }

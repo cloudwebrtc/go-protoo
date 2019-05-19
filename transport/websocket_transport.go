@@ -39,8 +39,10 @@ func (transport *WebSocketTransport) ReadMessage() {
 			mt, message, err := c.ReadMessage()
 			transport.msgType = mt
 			if err != nil {
-				logger.Infof("Got error:", err)
-				transport.Emit("error", err)
+				logger.Warnf("Got error:", err)
+				if c, k := err.(*websocket.CloseError); k {
+					transport.Emit("error", c.Code, c.Text)
+				}
 				close(stop)
 				break
 			}
@@ -70,7 +72,7 @@ func (transport *WebSocketTransport) ReadMessage() {
 
 /*
 * Send |message| to the connection.
-*/
+ */
 func (transport *WebSocketTransport) Send(message string) error {
 	logger.Infof("Send data: %s", message)
 	return transport.socket.WriteMessage(transport.msgType, []byte(message))
@@ -78,7 +80,7 @@ func (transport *WebSocketTransport) Send(message string) error {
 
 /*
 * Close connection.
-*/
+ */
 func (transport *WebSocketTransport) Close() {
 	logger.Infof("Close ws!")
 	transport.socket.Close()
