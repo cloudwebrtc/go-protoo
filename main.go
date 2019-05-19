@@ -57,6 +57,12 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 
 	handleNotification := func(notification map[string]interface{}) {
 		logger.Infof("handleNotification => %s", notification["method"])
+
+		method := notification["method"].(string)
+		data := notification["data"].(map[string]interface{})
+
+		//Forward notification to testRoom.
+		testRoom.Notify(peer, method, data)
 	}
 
 	handleClose := func() {
