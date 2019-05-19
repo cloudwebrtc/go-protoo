@@ -1,0 +1,111 @@
+package client
+
+import (
+	"crypto/tls"
+	"net/http"
+	"protoo/logger"
+	"protoo/transport"
+	"time"
+
+	"github.com/chuckpreslar/emission"
+	"github.com/gorilla/websocket"
+)
+
+const pingPeriod = 5 * time.Second
+
+type WebSocketClient struct {
+	emission.Emitter
+	socket          *websocket.Conn
+	transport       *transport.WebSocketTransport
+	handleWebSocket func(ws *transport.WebSocketTransport)
+}
+
+func NewClient(url string, handleWebSocket func(ws *transport.WebSocketTransport)) *WebSocketClient {
+	var client WebSocketClient
+	client.Emitter = *emission.NewEmitter()
+	logger.Infof("Connecting to %s", url)
+
+	responseHeader := http.Header{}
+	responseHeader.Add("Sec-WebSocket-Protocol", "protoo")
+
+	// only for testing
+	tls_cfg := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	dialer := websocket.Dialer{
+		Proxy:            http.ProxyFromEnvironment,
+		HandshakeTimeout: 45 * time.Second,
+		TLSClientConfig:  tls_cfg,
+	}
+
+	socket, _, err := dialer.Dial(url, responseHeader)
+	if err != nil {
+		logger.Errorf("Dial failed:", err)
+	}
+	client.socket = socket
+	client.handleWebSocket = handleWebSocket
+	client.transport = transport.NewWebSocketTransport(socket)
+	client.handleWebSocket(client.transport)
+	return &client
+}
+
+func (client *WebSocketClient) ReadMessage() {
+
+	in := make(chan []byte)
+	stop := make(chan struct{})
+	pingTicker := time.NewTicker(pingPeriod)
+	var c = client.socket
+	var transport = client.transport
+	go func() {
+		for {
+			_, message, err := c.ReadMessage()
+			if err != nil {
+				logger.Warnf("Got error:", err)
+				if c, k := err.(*websocket.CloseError); k {
+					transport.Emit("error", c.Code, c.Text)
+				}
+				close(stop)
+				break
+			}
+			in <- message
+		}
+	}()
+
+	for {
+		select {
+		case <-stop:
+			return
+		case message := <-in:
+			{
+				logger.Infof("Recivied data: %s", message)
+				transport.Emit("message", []byte(message))
+			}
+		case _ = <-pingTicker.C:
+			logger.Infof("Send keepalive !!!")
+			if err := client.Send("{}"); err != nil {
+				logger.Errorf("Keepalive has failed")
+				pingTicker.Stop()
+				return
+			}
+		}
+	}
+}
+
+func (client *WebSocketClient) Close() {
+	var c = client.socket
+	err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	if err != nil {
+		logger.Warnf("write close:", err)
+		return
+	}
+	client.socket.Close()
+}
+
+/*
+* Send |message| to the connection.
+ */
+func (client *WebSocketClient) Send(message string) error {
+	logger.Infof("Send data: %s", message)
+	return client.socket.WriteMessage(websocket.TextMessage, []byte(message))
+}
