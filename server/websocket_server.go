@@ -38,10 +38,10 @@ func (server *WebSocketServer) handleWebSocketRequest(writer http.ResponseWriter
 	wsTransport.ReadMessage()
 }
 
-func (server *WebSocketServer) Bind(host string, port string) {
+func (server *WebSocketServer) Bind(host string, port string, certFile string, keyFile string) {
 	// Websocket handle func
 	http.HandleFunc("/ws", server.handleWebSocketRequest)
 	http.Handle("/", http.FileServer(http.Dir(".")))
 	logger.Infof("WebSocketServer listening on: %s:%s", host, port)
-	panic(http.ListenAndServeTLS(host+":"+port, "certs/cert.pem", "certs/key.pem", nil))
+	panic(http.ListenAndServeTLS(host+":"+port, certFile, keyFile, nil))
 }
