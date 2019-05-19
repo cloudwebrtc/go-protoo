@@ -30,6 +30,7 @@ export default class ProtooClientTest extends EventEmitter {
     _login() {
         this._protooPeer.request('login', {}).then((data) => {
             console.log('login got success: result => ' + JSON.stringify(data));
+            alert('login success, sen offer now !');
             this._offer();
         }).catch((error) => {
             console.log('login got reject: error =>' + JSON.stringify(error));
@@ -42,12 +43,14 @@ export default class ProtooClientTest extends EventEmitter {
         }).then((data) => {
             console.log('offer success: result => ' + JSON.stringify(data));
         }).catch((error) => {
+            alert('offer request got failed, error => '+ JSON.stringify(error));
             console.log('offer got reject: error => ' + JSON.stringify(error));
         });
     }
 
     _handleRequest(request, accept, reject) {
         console.log('_handleRequest() [method:%s, data:%o]', request.method, request.data);
+        alert('Handle request ' + request.method);
         switch (request.method) {
             case 'kick': {
                 reject(486, 'Busy Here')
