@@ -17,8 +17,8 @@ npm start
 ### The following logs can be seen in the chrome console.
 ```
 bundle.js:1 Peer "open" event
-bundle.js:1 login got success: result => {"name":"xxxx","status":"login"}
+bundle.js:1 login success: result => {"name":"xxxx","status":"login"}
 bundle.js:1 _handleRequest() [method:kick, data:Object]
-bundle.js:1 offer got reject: error => {"code":500}
+bundle.js:1 offer reject: error => {"code":500}
 bundle.js:1 _handleRequest() [method:kick, data:Object]
 ```
