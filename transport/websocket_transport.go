@@ -22,7 +22,8 @@ func NewWebSocketTransport(socket *websocket.Conn) *WebSocketTransport {
 	transport.Emitter = *emission.NewEmitter()
 	transport.socket = socket
 	transport.socket.SetCloseHandler(func(code int, text string) error {
-		transport.Emit("close", text+" ["+strconv.Itoa(code)+"]")
+		logger.Warnf("%s [%d]", text, strconv.Itoa(code))
+		transport.Emit("close")
 		return nil
 	})
 	return &transport

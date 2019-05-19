@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"protoo/logger"
 	"protoo/transport"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -17,12 +18,18 @@ func NewWebSocketServer(handler func(ws *transport.WebSocketTransport, request *
 	var server = &WebSocketServer{
 		handleWebSocket: handler,
 	}
-	server.upgrader = websocket.Upgrader{}
+	server.upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 	return server
 }
 
 func (server *WebSocketServer) handleWebSocketRequest(writer http.ResponseWriter, request *http.Request) {
-	socket, err := server.upgrader.Upgrade(writer, request, nil)
+	responseHeader := http.Header{}
+	responseHeader.Add("Sec-WebSocket-Protocol", "protoo")
+	socket, err := server.upgrader.Upgrade(writer, request, responseHeader)
 	if err != nil {
 		panic(err)
 	}
@@ -36,5 +43,5 @@ func (server *WebSocketServer) Bind(host string, port string) {
 	http.HandleFunc("/ws", server.handleWebSocketRequest)
 	http.Handle("/", http.FileServer(http.Dir(".")))
 	logger.Infof("WebSocketServer listening on: %s:%s", host, port)
-	panic(http.ListenAndServeTLS(host + ":" + port, "certs/cert.pem", "certs/key.pem", nil))
+	panic(http.ListenAndServeTLS(host+":"+port, "certs/cert.pem", "certs/key.pem", nil))
 }
