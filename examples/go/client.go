@@ -29,8 +29,8 @@ func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 	handleRequest := func(request map[string]interface{}, accept AcceptFunc, reject RejectFunc) {
 		method := request["method"]
 		logger.Infof("handleRequest =>  (%s) ", method)
-		if method == "login" {
-			accept(JsonEncode(`{"name":"xxxx","status":"login"}`))
+		if method == "kick" {
+			reject(486, "Busy Here")
 		} else if method == "offer" {
 			reject(500, "sdp error!")
 		}
@@ -48,7 +48,7 @@ func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 	peer.On("notification", handleNotification)
 	peer.On("close", handleClose)
 
-	peer.Request("login", JsonEncode(`{"name":"xxxx","why":"I don't like you"}`),
+	peer.Request("login", JsonEncode(`{"username":"xxxx","password":"XXXX"}`),
 		func(result map[string]interface{}) {
 			logger.Infof("login success: =>  %s", result)
 		},
