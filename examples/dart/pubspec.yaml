@@ -1,0 +1,16 @@
+name: dart
+description: A sample command-line application.
+# version: 1.0.0
+# homepage: https://www.example.com
+# author: 湖北捷智云技术有限公司 <duanweiwei1982@gmail.com>
+
+environment:
+  sdk: '>=2.2.0 <3.0.0'
+
+dependencies:
+  protoo_client:
+    git: https://github.com/cloudwebrtc/dart-protoo-client
+
+#dev_dependencies:
+#  pedantic: ^1.0.0
+#  test: ^1.0.0
