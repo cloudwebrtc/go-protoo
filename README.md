@@ -4,9 +4,15 @@
 ### Run go-protoo-server.
 ```
 git clone https://github.com/cloudwebrtc/go-protoo-server
-cd go-protoo-server
-go build main.go
-./main
+cd go-protoo-server/examples/go
+go build server.go
+./server
+```
+### Golang client test.
+```
+cd go-protoo-server/examples/go
+go build client.go
+./client
 ```
 ### JS client test.
 ```
