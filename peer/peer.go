@@ -2,8 +2,9 @@ package peer
 
 import (
 	"encoding/json"
-	"protoo/logger"
-	"protoo/transport"
+
+	"github.com/cloudwebrtc/go-protoo/logger"
+	"github.com/cloudwebrtc/go-protoo/transport"
 
 	"github.com/chuckpreslar/emission"
 )

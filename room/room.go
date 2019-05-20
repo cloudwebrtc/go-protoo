@@ -1,9 +1,9 @@
 package room
 
 import (
-	"protoo/logger"
-	"protoo/peer"
-	"protoo/transport"
+	"github.com/cloudwebrtc/go-protoo/logger"
+	"github.com/cloudwebrtc/go-protoo/peer"
+	"github.com/cloudwebrtc/go-protoo/transport"
 )
 
 type Room struct {

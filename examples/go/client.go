@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"protoo/client"
-	"protoo/logger"
-	"protoo/peer"
-	"protoo/transport"
+	"github.com/cloudwebrtc/go-protoo/client"
+	"github.com/cloudwebrtc/go-protoo/logger"
+	"github.com/cloudwebrtc/go-protoo/peer"
+	"github.com/cloudwebrtc/go-protoo/transport"
 )
 
 func JsonEncode(str string) map[string]interface{} {

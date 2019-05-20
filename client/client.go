@@ -3,11 +3,11 @@ package client
 import (
 	"crypto/tls"
 	"net/http"
-	"protoo/logger"
-	"protoo/transport"
 	"time"
 
 	"github.com/chuckpreslar/emission"
+	"github.com/cloudwebrtc/go-protoo/logger"
+	"github.com/cloudwebrtc/go-protoo/transport"
 	"github.com/gorilla/websocket"
 )
 

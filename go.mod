@@ -1,4 +1,4 @@
-module protoo
+module github.com/cloudwebrtc/go-protoo
 
 go 1.12
 
