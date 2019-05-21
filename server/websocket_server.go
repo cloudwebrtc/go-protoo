@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/cloudwebrtc/go-protoo/logger"
 	"github.com/cloudwebrtc/go-protoo/transport"
@@ -9,6 +10,21 @@ import (
 )
 
 type WebSocketServerConfig struct {
+	Host          string
+	Port          int
+	CertFile      string
+	KeyFile       string
+	HTMLRoot      string
+	WebSocketPath string
+}
+
+func DefaultConfig() WebSocketServerConfig {
+	return WebSocketServerConfig{
+		Host:          "0.0.0.0",
+		Port:          8443,
+		HTMLRoot:      ".",
+		WebSocketPath: "/ws",
+	}
 }
 
 type WebSocketServer struct {
@@ -41,10 +57,10 @@ func (server *WebSocketServer) handleWebSocketRequest(writer http.ResponseWriter
 	wsTransport.ReadMessage()
 }
 
-func (server *WebSocketServer) Bind(host string, port string, certFile string, keyFile string) {
+func (server *WebSocketServer) Bind(cfg WebSocketServerConfig) {
 	// Websocket handle func
-	http.HandleFunc("/ws", server.handleWebSocketRequest)
-	http.Handle("/", http.FileServer(http.Dir(".")))
-	logger.Infof("WebSocketServer listening on: %s:%s", host, port)
-	panic(http.ListenAndServeTLS(host+":"+port, certFile, keyFile, nil))
+	http.HandleFunc(cfg.WebSocketPath, server.handleWebSocketRequest)
+	http.Handle("/", http.FileServer(http.Dir(cfg.HTMLRoot)))
+	logger.Infof("WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
+	panic(http.ListenAndServeTLS(cfg.Host+":"+strconv.Itoa(cfg.Port), cfg.CertFile, cfg.KeyFile, nil))
 }

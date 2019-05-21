@@ -77,5 +77,8 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 func main() {
 	testRoom = room.NewRoom("room1")
 	protooServer := server.NewWebSocketServer(handleNewWebSocket)
-	protooServer.Bind("0.0.0.0", "8443", "../certs/cert.pem", "../certs/key.pem")
+	config := server.DefaultConfig()
+	config.CertFile = "../certs/cert.pem"
+	config.KeyFile = "../certs/key.pem"
+	protooServer.Bind(config)
 }
