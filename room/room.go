@@ -29,6 +29,13 @@ func (room *Room) CreatePeer(peerId string, transport *transport.WebSocketTransp
 	return newPeer
 }
 
+func (room *Room) GetPeer(peerId string) *peer.Peer {
+	if peer, ok := room.peers[peerId]; ok {
+		return peer
+	}
+	return nil
+}
+
 func (room *Room) GetPeers() map[string]*peer.Peer {
 	return room.peers
 }
