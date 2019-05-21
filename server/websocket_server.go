@@ -8,6 +8,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type WebSocketServerConfig struct {
+}
+
 type WebSocketServer struct {
 	handleWebSocket func(ws *transport.WebSocketTransport, request *http.Request)
 	// Websocket upgrader

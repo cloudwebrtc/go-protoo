@@ -51,7 +51,6 @@ func NewClient(url string, handleWebSocket func(ws *transport.WebSocketTransport
 }
 
 func (client *WebSocketClient) ReadMessage() {
-
 	in := make(chan []byte)
 	stop := make(chan struct{})
 	pingTicker := time.NewTicker(pingPeriod)
@@ -83,7 +82,7 @@ func (client *WebSocketClient) ReadMessage() {
 			}
 		case _ = <-pingTicker.C:
 			logger.Infof("Send keepalive !!!")
-			if err := client.Send("{}"); err != nil {
+			if err := transport.Send("{}"); err != nil {
 				logger.Errorf("Keepalive has failed")
 				pingTicker.Stop()
 				return
@@ -93,19 +92,5 @@ func (client *WebSocketClient) ReadMessage() {
 }
 
 func (client *WebSocketClient) Close() {
-	var c = client.socket
-	err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	if err != nil {
-		logger.Warnf("write close:", err)
-		return
-	}
-	client.socket.Close()
-}
-
-/*
-* Send |message| to the connection.
- */
-func (client *WebSocketClient) Send(message string) error {
-	logger.Infof("Send data: %s", message)
-	return client.socket.WriteMessage(websocket.TextMessage, []byte(message))
+	client.transport.Close()
 }

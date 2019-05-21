@@ -1,7 +1,9 @@
 package transport
 
 import (
+	"errors"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/chuckpreslar/emission"
@@ -14,15 +16,20 @@ const pingPeriod = 5 * time.Second
 type WebSocketTransport struct {
 	emission.Emitter
 	socket *websocket.Conn
+	mutex  *sync.Mutex
+	closed bool
 }
 
 func NewWebSocketTransport(socket *websocket.Conn) *WebSocketTransport {
 	var transport WebSocketTransport
 	transport.Emitter = *emission.NewEmitter()
 	transport.socket = socket
+	transport.mutex = new(sync.Mutex)
+	transport.closed = false
 	transport.socket.SetCloseHandler(func(code int, text string) error {
 		logger.Warnf("%s [%d]", text, strconv.Itoa(code))
 		transport.Emit("close")
+		transport.closed = true
 		return nil
 	})
 	return &transport
@@ -74,6 +81,11 @@ func (transport *WebSocketTransport) ReadMessage() {
  */
 func (transport *WebSocketTransport) Send(message string) error {
 	logger.Infof("Send data: %s", message)
+	transport.mutex.Lock()
+	defer transport.mutex.Unlock()
+	if transport.closed {
+		return errors.New("websocket: write closed")
+	}
 	return transport.socket.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
@@ -81,6 +93,13 @@ func (transport *WebSocketTransport) Send(message string) error {
 * Close connection.
  */
 func (transport *WebSocketTransport) Close() {
-	logger.Infof("Close transport: ", transport)
-	transport.socket.Close()
+	transport.mutex.Lock()
+	defer transport.mutex.Unlock()
+	if transport.closed == false {
+		logger.Infof("Close ws transport now : ", transport)
+		transport.socket.Close()
+		transport.closed = true
+	} else {
+		logger.Warnf("Transport already closed :", transport)
+	}
 }
