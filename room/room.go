@@ -38,6 +38,17 @@ func (room *Room) CreatePeer(peerId string, transport *transport.WebSocketTransp
 	return newPeer
 }
 
+func (room *Room) AddPeer(newPeer *peer.Peer) {
+	room.Lock()
+	defer room.Unlock()
+	room.peers[newPeer.ID()] = newPeer
+	newPeer.On("close", func() {
+		room.Lock()
+		defer room.Unlock()
+		delete(room.peers, newPeer.ID())
+	})
+}
+
 func (room *Room) GetPeer(peerId string) *peer.Peer {
 	room.Lock()
 	defer room.Unlock()
