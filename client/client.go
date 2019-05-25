@@ -41,7 +41,7 @@ func NewClient(url string, handleWebSocket func(ws *transport.WebSocketTransport
 
 	socket, _, err := dialer.Dial(url, responseHeader)
 	if err != nil {
-		logger.Errorf("Dial failed:", err)
+		logger.Errorf("Dial failed: %v", err)
 	}
 	client.socket = socket
 	client.handleWebSocket = handleWebSocket
@@ -60,7 +60,7 @@ func (client *WebSocketClient) ReadMessage() {
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				logger.Warnf("Got error:", err)
+				logger.Warnf("Got error: %v", err)
 				if c, k := err.(*websocket.CloseError); k {
 					transport.Emit("error", c.Code, c.Text)
 				}

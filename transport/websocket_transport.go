@@ -2,7 +2,6 @@ package transport
 
 import (
 	"errors"
-	"strconv"
 	"sync"
 	"time"
 
@@ -27,7 +26,7 @@ func NewWebSocketTransport(socket *websocket.Conn) *WebSocketTransport {
 	transport.mutex = new(sync.Mutex)
 	transport.closed = false
 	transport.socket.SetCloseHandler(func(code int, text string) error {
-		logger.Warnf("%s [%d]", text, strconv.Itoa(code))
+		logger.Warnf("%s [%d]", text, code)
 		transport.Emit("close")
 		transport.closed = true
 		return nil
@@ -45,7 +44,7 @@ func (transport *WebSocketTransport) ReadMessage() {
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				logger.Warnf("Got error:", err)
+				logger.Warnf("Got error: %v", err)
 				if c, k := err.(*websocket.CloseError); k {
 					transport.Emit("error", c.Code, c.Text)
 				}

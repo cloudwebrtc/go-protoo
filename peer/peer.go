@@ -156,7 +156,7 @@ func (peer *Peer) handleResponse(response map[string]interface{}) {
 	transcation := peer.transcations[id]
 
 	if transcation == nil {
-		logger.Errorf("received response does not match any sent request [id:%s]", id)
+		logger.Errorf("received response does not match any sent request [id:%d]", id)
 		return
 	}
 
