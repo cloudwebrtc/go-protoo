@@ -2,19 +2,19 @@ import 'package:protoo_client/protoo_client.dart';
 
 main() async {
 
-  Peer peer = new Peer('https://127.0.0.1:8443/ws?peer-id=xxxxx');
+  Peer peer = new Peer('https://127.0.0.1:8443/ws?peer=dart-client-id-xxxx');
 
   peer.on('open', () {
 
     print('open');
 
-    peer.send('login', {}).then((data) {
+    peer.send('login', {"username":"alice","password":"alicespass"}).then((data) {
       print('response: ' + data.toString());
     }).catchError((error) {
       print('response error: ' + error.toString());
     });
 
-    peer.send('offer', {'sdp':'empty!'}).then((data) {
+    peer.send('offer', {'sdp':'empty'}).then((data) {
       print('response: ' + data.toString());
     }).catchError((error) {
       print('response error: ' + error.toString());
@@ -31,8 +31,10 @@ main() async {
 
   peer.on('request', (request, accept, reject) {
     print('request: ' + request.toString());
-    accept({ 'key1':"value1", 'key2':"value2"});
-    //reject(404, 'Oh no~~~~~');
+      if(request['method'] == 'kick')
+        reject(486, 'Busy Here');
+      else
+        accept({});
   });
 
   await peer.connect();

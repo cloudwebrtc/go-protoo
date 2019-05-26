@@ -28,9 +28,9 @@ export default class ProtooClientTest extends EventEmitter {
     }
 
     _login() {
-        this._protooPeer.request('login', {}).then((data) => {
+        this._protooPeer.request('login', { username: 'alice',password: 'alicespass'}).then((data) => {
             console.log('login success: result => ' + JSON.stringify(data));
-            alert('login success, sen offer now !');
+            alert('login success, send offer now !');
             this._offer();
         }).catch((error) => {
             console.log('login reject: error =>' + JSON.stringify(error));
@@ -38,9 +38,7 @@ export default class ProtooClientTest extends EventEmitter {
     }
 
     _offer() {
-        this._protooPeer.request('offer', {
-            'sdp': 'empty!'
-        }).then((data) => {
+        this._protooPeer.request('offer', { 'sdp': 'empty'}).then((data) => {
             console.log('offer success: result => ' + JSON.stringify(data));
         }).catch((error) => {
             alert('offer request failed, error => '+ JSON.stringify(error));

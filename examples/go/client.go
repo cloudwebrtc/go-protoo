@@ -20,10 +20,12 @@ func JsonEncode(str string) map[string]interface{} {
 type AcceptFunc func(data map[string]interface{})
 type RejectFunc func(errorCode int, errorReason string)
 
+var peerId = "go-client-id-xxxx"
+
 func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 	logger.Infof("handleWebSocketOpen")
 
-	peer := peer.NewPeer("aaa", transport)
+	peer := peer.NewPeer(peerId, transport)
 	peer.On("close", func() {
 		logger.Infof("peer close")
 	})
@@ -33,8 +35,8 @@ func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 		logger.Infof("handleRequest =>  (%s) ", method)
 		if method == "kick" {
 			reject(486, "Busy Here")
-		} else if method == "offer" {
-			reject(500, "sdp error!")
+		} else {
+			accept(JsonEncode(`{}`))
 		}
 	}
 
@@ -50,31 +52,39 @@ func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 	peer.On("notification", handleNotification)
 	peer.On("close", handleClose)
 
-	peer.Request("login", JsonEncode(`{"username":"aaa","password":"XXXX"}`),
+	peer.Request("login", JsonEncode(`{"username":"alice","password":"alicespass"}`),
 		func(result map[string]interface{}) {
 			logger.Infof("login success: =>  %s", result)
 		},
 		func(code int, err string) {
 			logger.Infof("login reject: %d => %s", code, err)
 		})
-	peer.Request("join", JsonEncode(`{"client":"aaa", "type":"sender"}`),
+	peer.Request("offer", JsonEncode(`{"sdp":"empty"}`),
 		func(result map[string]interface{}) {
-			logger.Infof("join success: =>  %s", result)
+			logger.Infof("offer success: =>  %s", result)
 		},
 		func(code int, err string) {
-			logger.Infof("join reject: %d => %s", code, err)
+			logger.Infof("offer reject: %d => %s", code, err)
 		})
-	peer.Request("publish", JsonEncode(`{"type":"sender", "jsep":{"type":"offer", "sdp":"111111111111111"}}`),
-		func(result map[string]interface{}) {
-			logger.Infof("publish success: =>  %s", result)
-		},
-		func(code int, err string) {
-			logger.Infof("publish reject: %d => %s", code, err)
-		})
-
+	/*
+		peer.Request("join", JsonEncode(`{"client":"aaa", "type":"sender"}`),
+			func(result map[string]interface{}) {
+				logger.Infof("join success: =>  %s", result)
+			},
+			func(code int, err string) {
+				logger.Infof("join reject: %d => %s", code, err)
+			})
+		peer.Request("publish", JsonEncode(`{"type":"sender", "jsep":{"type":"offer", "sdp":"111111111111111"}}`),
+			func(result map[string]interface{}) {
+				logger.Infof("publish success: =>  %s", result)
+			},
+			func(code int, err string) {
+				logger.Infof("publish reject: %d => %s", code, err)
+			})
+	*/
 }
 
 func main() {
-	var ws_client = client.NewClient("wss://127.0.0.1:8443/ws?peer=aaa&room=room1", handleWebSocketOpen)
+	var ws_client = client.NewClient("wss://127.0.0.1:8443/ws?peer="+peerId, handleWebSocketOpen)
 	ws_client.ReadMessage()
 }

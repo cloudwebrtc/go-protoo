@@ -25,26 +25,37 @@ var testRoom *room.Room
 
 func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.Request) {
 
-	//https://127.0.0.1:8443/ws?peer-id=xxxxx&room-id=room1
+	//https://127.0.0.1:8443/ws?peer=alice
 	vars := request.URL.Query()
-	peerId := vars["peer-id"][0]
-	//roomId := vars["room-id"][0]
+	peerId := vars["peer"][0]
+
+	logger.Infof("handleNewWebSocket peerId => (%s)", peerId)
 
 	peer := testRoom.CreatePeer(peerId, transport)
 
 	handleRequest := func(request map[string]interface{}, accept AcceptFunc, reject RejectFunc) {
 
-		method := request["method"]
+		method := request["method"].(string)
+		data := request["data"].(map[string]interface{})
 
 		/*handle login and offer request*/
 		if method == "login" {
-			accept(JsonEncode(`{"name":"xxxx","status":"login"}`))
+			username := data["username"].(string)
+			password := data["password"].(string)
+			logger.Infof("Handle login username => %s, password => %s", username, password)
+			accept(JsonEncode(`{"status":"login success!"}`))
 		} else if method == "offer" {
-			reject(500, "sdp error!")
+			sdp := data["sdp"].(string)
+			logger.Infof("Handle offer sdp => %s", sdp)
+			if sdp == "empty" {
+				reject(500, "sdp error!")
+			} else {
+				accept(JsonEncode(`{}`))
+			}
 		}
 
 		/*send `kick` request to peer*/
-		peer.Request("kick", JsonEncode(`{"name":"xxxx","why":"I don't like you"}`),
+		peer.Request("kick", JsonEncode(`{"reason":"go away!"}`),
 			func(result map[string]interface{}) {
 				logger.Infof("kick success: =>  %s", result)
 				// close transport
