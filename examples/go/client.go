@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+
 	"github.com/cloudwebrtc/go-protoo/client"
 	"github.com/cloudwebrtc/go-protoo/logger"
 	"github.com/cloudwebrtc/go-protoo/peer"
@@ -22,8 +23,9 @@ type RejectFunc func(errorCode int, errorReason string)
 func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 	logger.Infof("handleWebSocketOpen")
 
-	peer := peer.NewPeer("client-xxxx", transport)
+	peer := peer.NewPeer("aaa", transport)
 	peer.On("close", func() {
+		logger.Infof("peer close")
 	})
 
 	handleRequest := func(request map[string]interface{}, accept AcceptFunc, reject RejectFunc) {
@@ -48,16 +50,31 @@ func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 	peer.On("notification", handleNotification)
 	peer.On("close", handleClose)
 
-	peer.Request("login", JsonEncode(`{"username":"xxxx","password":"XXXX"}`),
+	peer.Request("login", JsonEncode(`{"username":"aaa","password":"XXXX"}`),
 		func(result map[string]interface{}) {
 			logger.Infof("login success: =>  %s", result)
 		},
 		func(code int, err string) {
 			logger.Infof("login reject: %d => %s", code, err)
 		})
+	peer.Request("join", JsonEncode(`{"client":"aaa", "type":"sender"}`),
+		func(result map[string]interface{}) {
+			logger.Infof("join success: =>  %s", result)
+		},
+		func(code int, err string) {
+			logger.Infof("join reject: %d => %s", code, err)
+		})
+	peer.Request("publish", JsonEncode(`{"type":"sender", "jsep":{"type":"offer", "sdp":"111111111111111"}}`),
+		func(result map[string]interface{}) {
+			logger.Infof("publish success: =>  %s", result)
+		},
+		func(code int, err string) {
+			logger.Infof("publish reject: %d => %s", code, err)
+		})
+
 }
 
 func main() {
-	var ws_client = client.NewClient("wss://127.0.0.1:8443/ws?peer-id=xxxx&room-id=bbbb", handleWebSocketOpen)
+	var ws_client = client.NewClient("wss://127.0.0.1:8443/ws?peer=aaa&room=room1", handleWebSocketOpen)
 	ws_client.ReadMessage()
 }
