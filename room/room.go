@@ -65,7 +65,7 @@ func (room *Room) GetPeers() map[string]*peer.Peer {
 func (room *Room) RemovePeer(peerId string) {
 	room.Lock()
 	defer room.Unlock()
-	delete(peerId)
+	delete(room.peers, peerId)
 }
 
 func (room *Room) ID() string {
