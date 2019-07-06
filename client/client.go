@@ -96,6 +96,10 @@ func (client *WebSocketClient) ReadMessage() {
 	}
 }
 
+func (client *WebSocketClient) GetTransport() *transport.WebSocketTransport {
+	return client.transport
+}
+
 func (client *WebSocketClient) Close() {
 	client.transport.Close()
 }
