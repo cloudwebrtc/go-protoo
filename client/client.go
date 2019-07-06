@@ -42,6 +42,7 @@ func NewClient(url string, handleWebSocket func(ws *transport.WebSocketTransport
 	socket, _, err := dialer.Dial(url, responseHeader)
 	if err != nil {
 		logger.Errorf("Dial failed: %v", err)
+		return nil
 	}
 	client.socket = socket
 	client.handleWebSocket = handleWebSocket
@@ -51,6 +52,10 @@ func NewClient(url string, handleWebSocket func(ws *transport.WebSocketTransport
 }
 
 func (client *WebSocketClient) ReadMessage() {
+	if client == nil {
+		logger.Errorf("Client is nil")
+		return
+	}
 	in := make(chan []byte)
 	stop := make(chan struct{})
 	pingTicker := time.NewTicker(pingPeriod)
