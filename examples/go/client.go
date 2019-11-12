@@ -26,8 +26,8 @@ func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 	logger.Infof("handleWebSocketOpen")
 
 	peer := peer.NewPeer(peerId, transport)
-	peer.On("close", func() {
-		logger.Infof("peer close")
+	peer.On("close", func(code int, err string) {
+		logger.Infof("peer close [%d] %s", code, err)
 	})
 
 	handleRequest := func(request map[string]interface{}, accept AcceptFunc, reject RejectFunc) {
@@ -44,8 +44,8 @@ func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 		logger.Infof("handleNotification => %s", notification["method"])
 	}
 
-	handleClose := func() {
-		logger.Infof("handleClose => peer (%s) ", peer.ID())
+	handleClose := func(code int, err string) {
+		logger.Infof("handleClose => peer (%s) [%d] %s", peer.ID(), code, err)
 	}
 
 	peer.On("request", handleRequest)

@@ -27,7 +27,7 @@ func NewRoom(roomId string) *Room {
 
 func (room *Room) CreatePeer(peerId string, transport *transport.WebSocketTransport) *peer.Peer {
 	newPeer := peer.NewPeer(peerId, transport)
-	newPeer.On("close", func() {
+	newPeer.On("close", func(code int, err string) {
 		room.Lock()
 		defer room.Unlock()
 		delete(room.peers, peerId)
@@ -42,7 +42,7 @@ func (room *Room) AddPeer(newPeer *peer.Peer) {
 	room.Lock()
 	defer room.Unlock()
 	room.peers[newPeer.ID()] = newPeer
-	newPeer.On("close", func() {
+	newPeer.On("close", func(code int, err string) {
 		room.Lock()
 		defer room.Unlock()
 		delete(room.peers, newPeer.ID())

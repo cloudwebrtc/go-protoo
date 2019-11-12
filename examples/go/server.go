@@ -76,8 +76,8 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 		testRoom.Notify(peer, method, data)
 	}
 
-	handleClose := func() {
-		logger.Infof("handleClose => peer (%s) ", peer.ID())
+	handleClose := func(code int, err string) {
+		logger.Infof("handleClose => peer (%s) [%d] %s", peer.ID(), code, err)
 	}
 
 	peer.On("request", handleRequest)
