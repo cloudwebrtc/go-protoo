@@ -29,13 +29,13 @@ func NewPeer(id string, transport *transport.WebSocketTransport) *Peer {
 	peer.id = id
 	peer.transport = transport
 	peer.transport.On("message", peer.handleMessage)
-	peer.transport.On("close", func() {
-		logger.Infof("Transport closed")
-		peer.Emit("close")
+	peer.transport.On("close", func(code int, err string) {
+		logger.Infof("Transport closed [%d] %s", code, err)
+		peer.Emit("close", code, err)
 	})
 	peer.transport.On("error", func(code int, err string) {
 		logger.Warnf("Transport got error (%d, %s)", code, err)
-		peer.Emit("close")
+		peer.Emit("error", code, err)
 	})
 	peer.transcations = make(map[int]*Transcation)
 	return &peer
@@ -43,7 +43,7 @@ func NewPeer(id string, transport *transport.WebSocketTransport) *Peer {
 
 func (peer *Peer) Close() {
 	peer.transport.Close()
-	peer.Emit("close")
+	peer.Emit("close", 1000, "")
 }
 
 func (peer *Peer) ID() string {

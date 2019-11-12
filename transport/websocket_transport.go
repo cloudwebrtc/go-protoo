@@ -27,7 +27,7 @@ func NewWebSocketTransport(socket *websocket.Conn) *WebSocketTransport {
 	transport.closed = false
 	transport.socket.SetCloseHandler(func(code int, text string) error {
 		logger.Warnf("%s [%d]", text, code)
-		transport.Emit("close")
+		transport.Emit("close", code, text)
 		transport.closed = true
 		return nil
 	})
