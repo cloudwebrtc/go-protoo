@@ -58,6 +58,14 @@ func (room *Room) GetPeer(peerId string) *peer.Peer {
 	return nil
 }
 
+func (room *Room) Map(fn func(string, *peer.Peer)) {
+	room.Lock()
+	defer room.Unlock()
+	for id, peer := range room.peers {
+		fn(id, peer)
+	}
+}
+
 func (room *Room) GetPeers() map[string]*peer.Peer {
 	return room.peers
 }
