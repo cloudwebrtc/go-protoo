@@ -2,6 +2,7 @@ package peer
 
 import (
 	"math/rand"
+	"time"
 )
 
 type AcceptFunc func(data map[string]interface{})
@@ -82,6 +83,7 @@ type Notification struct {
 }
 
 func RandInt(min, max int) int {
+	rand.Seed(time.Now().UnixNano())
 	if min >= max || min == 0 || max == 0 {
 		return max
 	}
