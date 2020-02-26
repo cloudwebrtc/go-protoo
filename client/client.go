@@ -2,6 +2,7 @@ package client
 
 import (
 	"crypto/tls"
+	"net"
 	"net/http"
 	"time"
 
@@ -68,6 +69,10 @@ func (client *WebSocketClient) ReadMessage() {
 				logger.Warnf("Got error: %v", err)
 				if c, k := err.(*websocket.CloseError); k {
 					transport.Emit("error", c.Code, c.Text)
+				} else {
+					if c, k := err.(*net.OpError); k {
+						transport.Emit("error", 1008, c.Error())
+					}
 				}
 				close(stop)
 				break
