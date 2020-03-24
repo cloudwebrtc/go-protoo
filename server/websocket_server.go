@@ -61,6 +61,12 @@ func (server *WebSocketServer) Bind(cfg WebSocketServerConfig) {
 	// Websocket handle func
 	http.HandleFunc(cfg.WebSocketPath, server.handleWebSocketRequest)
 	http.Handle("/", http.FileServer(http.Dir(cfg.HTMLRoot)))
-	logger.Infof("WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
-	panic(http.ListenAndServeTLS(cfg.Host+":"+strconv.Itoa(cfg.Port), cfg.CertFile, cfg.KeyFile, nil))
+
+	if cfg.CertFile == "" || cfg.KeyFile == "" {
+		logger.Infof("non-TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
+		panic(http.ListenAndServe(cfg.Host+":"+strconv.Itoa(cfg.Port), nil))
+	} else {
+		logger.Infof("TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
+		panic(http.ListenAndServeTLS(cfg.Host+":"+strconv.Itoa(cfg.Port), cfg.CertFile, cfg.KeyFile, nil))
+	}
 }
