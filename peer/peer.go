@@ -50,13 +50,18 @@ func (peer *Peer) ID() string {
 	return peer.id
 }
 
-func (peer *Peer) Request(method string, data map[string]interface{}, success AcceptFunc, reject RejectFunc) {
+func (peer *Peer) Request(method string, data interface{}, success AcceptFunc, reject RejectFunc) {
 	id := GenerateRandomNumber()
+	dataStr, err := json.Marshal(data)
+	if err != nil {
+		logger.Errorf("Marshal %v", err)
+		return
+	}
 	request := &Request{
 		Request: true,
 		Id:      id,
 		Method:  method,
-		Data:    data,
+		Data:    dataStr,
 	}
 	str, err := json.Marshal(request)
 	if err != nil {
@@ -78,11 +83,16 @@ func (peer *Peer) Request(method string, data map[string]interface{}, success Ac
 	peer.transport.Send(string(str))
 }
 
-func (peer *Peer) Notify(method string, data map[string]interface{}) {
+func (peer *Peer) Notify(method string, data interface{}) {
+	dataStr, err := json.Marshal(data)
+	if err != nil {
+		logger.Errorf("Marshal %v", err)
+		return
+	}
 	notification := &Notification{
 		Notification: true,
 		Method:       method,
-		Data:         data,
+		Data:         dataStr,
 	}
 	str, err := json.Marshal(notification)
 	if err != nil {
@@ -125,19 +135,23 @@ func (peer *Peer) handleMessage(message []byte) {
 		}
 		peer.handleNotification(data)
 	}
-	return
 }
 
 func (peer *Peer) handleRequest(request Request) {
 
 	logger.Infof("Handle request [%s]", request.Method)
 
-	accept := func(data map[string]interface{}) {
+	accept := func(data interface{}) {
+		dataStr, err := json.Marshal(data)
+		if err != nil {
+			logger.Errorf("Marshal %v", err)
+			return
+		}
 		response := &Response{
 			Response: true,
 			Ok:       true,
 			Id:       request.Id,
-			Data:     data,
+			Data:     dataStr,
 		}
 		str, err := json.Marshal(response)
 		if err != nil {
