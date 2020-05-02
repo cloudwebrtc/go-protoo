@@ -94,29 +94,49 @@ func (peer *Peer) Notify(method string, data map[string]interface{}) {
 }
 
 func (peer *Peer) handleMessage(message []byte) {
-	var data map[string]interface{}
-	if err := json.Unmarshal(message, &data); err != nil {
+	var msg PeerMsg
+	if err := json.Unmarshal(message, &msg); err != nil {
 		panic(err)
 	}
-	if data["request"] != nil {
+	if msg.Request {
+		var data Request
+		if err := json.Unmarshal(message, &data); err != nil {
+			panic(err)
+		}
 		peer.handleRequest(data)
-	} else if data["response"] != nil {
-		peer.handleResponse(data)
-	} else if data["notification"] != nil {
+	} else if msg.Response {
+		if msg.Ok {
+			var data Response
+			if err := json.Unmarshal(message, &data); err != nil {
+				panic(err)
+			}
+			peer.handleResponse(data)
+		} else {
+			var data ResponseError
+			if err := json.Unmarshal(message, &data); err != nil {
+				panic(err)
+			}
+			peer.handleResponseError(data)
+		}
+	} else if msg.Notification {
+		var data Notification
+		if err := json.Unmarshal(message, &data); err != nil {
+			panic(err)
+		}
 		peer.handleNotification(data)
 	}
 	return
 }
 
-func (peer *Peer) handleRequest(request map[string]interface{}) {
+func (peer *Peer) handleRequest(request Request) {
 
-	logger.Infof("Handle request [%s]", request["method"])
+	logger.Infof("Handle request [%s]", request.Method)
 
 	accept := func(data map[string]interface{}) {
 		response := &Response{
 			Response: true,
 			Ok:       true,
-			Id:       int(request["id"].(float64)),
+			Id:       request.Id,
 			Data:     data,
 		}
 		str, err := json.Marshal(response)
@@ -125,7 +145,7 @@ func (peer *Peer) handleRequest(request map[string]interface{}) {
 			return
 		}
 		//send accept
-		logger.Infof("Accept [%s] => (%s)", request["method"], str)
+		logger.Infof("Accept [%s] => (%s)", request.Method, str)
 		peer.transport.Send(string(str))
 	}
 
@@ -133,7 +153,7 @@ func (peer *Peer) handleRequest(request map[string]interface{}) {
 		response := &ResponseError{
 			Response:    true,
 			Ok:          false,
-			Id:          int(request["id"].(float64)),
+			Id:          request.Id,
 			ErrorCode:   errorCode,
 			ErrorReason: errorReason,
 		}
@@ -143,32 +163,37 @@ func (peer *Peer) handleRequest(request map[string]interface{}) {
 			return
 		}
 		//send reject
-		logger.Infof("Reject [%s] => (errorCode:%d, errorReason:%s)", request["method"], errorCode, errorReason)
+		logger.Infof("Reject [%s] => (errorCode:%d, errorReason:%s)", request.Method, errorCode, errorReason)
 		peer.transport.Send(string(str))
 	}
 
 	peer.Emit("request", request, accept, reject)
 }
 
-func (peer *Peer) handleResponse(response map[string]interface{}) {
-	id := int(response["id"].(float64))
-
+func (peer *Peer) handleResponse(response Response) {
+	id := response.Id
 	transcation := peer.transcations[id]
-
 	if transcation == nil {
 		logger.Errorf("received response does not match any sent request [id:%d]", id)
 		return
 	}
 
-	if response["ok"] != nil && response["ok"] == true {
-		transcation.accept(response["data"].(map[string]interface{}))
-	} else {
-		transcation.reject(int(response["errorCode"].(float64)), response["errorReason"].(string))
-	}
-
+	transcation.accept(response.Data)
 	delete(peer.transcations, id)
 }
 
-func (peer *Peer) handleNotification(notification map[string]interface{}) {
+func (peer *Peer) handleResponseError(response ResponseError) {
+	id := response.Id
+	transcation := peer.transcations[id]
+	if transcation == nil {
+		logger.Errorf("received response does not match any sent request [id:%d]", id)
+		return
+	}
+
+	transcation.reject(response.ErrorCode, response.ErrorReason)
+	delete(peer.transcations, id)
+}
+
+func (peer *Peer) handleNotification(notification Notification) {
 	peer.Emit("notification", notification)
 }

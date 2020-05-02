@@ -8,6 +8,13 @@ import (
 type AcceptFunc func(data map[string]interface{})
 type RejectFunc func(errorCode int, errorReason string)
 
+type PeerMsg struct {
+	Request      bool `json:"request"`
+	Response     bool `json:"response"`
+	Ok           bool `json:"ok"`
+	Notification bool `json:"notification"`
+}
+
 /*
 * Request
 {
