@@ -2,26 +2,39 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/cloudwebrtc/go-protoo/logger"
+	"github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/room"
 	"github.com/cloudwebrtc/go-protoo/server"
 	"github.com/cloudwebrtc/go-protoo/transport"
 )
 
-func JsonEncode(str string) map[string]interface{} {
-	var data map[string]interface{}
-	if err := json.Unmarshal([]byte(str), &data); err != nil {
-		panic(err)
-	}
-	return data
+var testRoom *room.Room
+
+type KickMsg struct {
+	Reason string `json:"reason"`
 }
 
-type AcceptFunc func(data map[string]interface{})
-type RejectFunc func(errorCode int, errorReason string)
+type LoginMsg struct {
+	Status string `json:"status"`
+}
 
-var testRoom *room.Room
+type Request struct {
+	Method string
+	Data   json.RawMessage
+}
+
+type LoginData struct {
+	Username string
+	Password string
+}
+
+type OfferData struct {
+	Sdp string `json:"sdp"`
+}
 
 func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.Request) {
 
@@ -31,35 +44,41 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 
 	logger.Infof("handleNewWebSocket peerId => (%s)", peerId)
 
-	peer := testRoom.CreatePeer(peerId, transport)
+	pr := testRoom.CreatePeer(peerId, transport)
 
-	handleRequest := func(request map[string]interface{}, accept AcceptFunc, reject RejectFunc) {
-
-		method := request["method"].(string)
-		data := request["data"].(map[string]interface{})
+	handleRequest := func(request peer.Request, accept peer.RespondFunc, reject peer.RejectFunc) {
+		method := request.Method
 
 		/*handle login and offer request*/
 		if method == "login" {
-			username := data["username"].(string)
-			password := data["password"].(string)
+			var data LoginData
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				log.Fatal("Marshal error")
+			}
+			username := data.Username
+			password := data.Password
 			logger.Infof("Handle login username => %s, password => %s", username, password)
-			accept(JsonEncode(`{"status":"login success!"}`))
+			accept(LoginMsg{Status: "login success!"})
 		} else if method == "offer" {
-			sdp := data["sdp"].(string)
+			var data OfferData
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				log.Fatal("Marshal error")
+			}
+			sdp := data.Sdp
 			logger.Infof("Handle offer sdp => %s", sdp)
 			if sdp == "empty" {
 				reject(500, "sdp error!")
 			} else {
-				accept(JsonEncode(`{}`))
+				accept(nil)
 			}
 		}
 
 		/*send `kick` request to peer*/
-		peer.Request("kick", JsonEncode(`{"reason":"go away!"}`),
-			func(result map[string]interface{}) {
+		pr.Request("kick", KickMsg{Reason: "go away!"},
+			func(result json.RawMessage) {
 				logger.Infof("kick success: =>  %s", result)
 				// close transport
-				peer.Close()
+				pr.Close()
 			},
 			func(code int, err string) {
 				logger.Infof("kick reject: %d => %s", code, err)
@@ -73,16 +92,16 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 		data := notification["data"].(map[string]interface{})
 
 		//Forward notification to testRoom.
-		testRoom.Notify(peer, method, data)
+		testRoom.Notify(pr, method, data)
 	}
 
 	handleClose := func(code int, err string) {
-		logger.Infof("handleClose => peer (%s) [%d] %s", peer.ID(), code, err)
+		logger.Infof("handleClose => peer (%s) [%d] %s", pr.ID(), code, err)
 	}
 
-	peer.On("request", handleRequest)
-	peer.On("notification", handleNotification)
-	peer.On("close", handleClose)
+	pr.On("request", handleRequest)
+	pr.On("notification", handleNotification)
+	pr.On("close", handleClose)
 }
 
 func main() {

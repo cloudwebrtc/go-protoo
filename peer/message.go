@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+type RespondFunc func(data interface{})
 type AcceptFunc func(data json.RawMessage)
 type RejectFunc func(errorCode int, errorReason string)
 
