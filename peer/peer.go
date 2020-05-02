@@ -54,7 +54,7 @@ func (peer *Peer) Request(method string, data interface{}, success AcceptFunc, r
 	id := GenerateRandomNumber()
 	dataStr, err := json.Marshal(data)
 	if err != nil {
-		logger.Errorf("Marshal %v", err)
+		logger.Errorf("Marshal data %v", err)
 		return
 	}
 	request := &Request{
@@ -86,7 +86,7 @@ func (peer *Peer) Request(method string, data interface{}, success AcceptFunc, r
 func (peer *Peer) Notify(method string, data interface{}) {
 	dataStr, err := json.Marshal(data)
 	if err != nil {
-		logger.Errorf("Marshal %v", err)
+		logger.Errorf("Marshal data %v", err)
 		return
 	}
 	notification := &Notification{
@@ -106,32 +106,37 @@ func (peer *Peer) Notify(method string, data interface{}) {
 func (peer *Peer) handleMessage(message []byte) {
 	var msg PeerMsg
 	if err := json.Unmarshal(message, &msg); err != nil {
-		panic(err)
+		logger.Errorf("Marshal %v", err)
+		return
 	}
 	if msg.Request {
 		var data Request
 		if err := json.Unmarshal(message, &data); err != nil {
-			panic(err)
+			logger.Errorf("Request Marshal %v", err)
+			return
 		}
 		peer.handleRequest(data)
 	} else if msg.Response {
 		if msg.Ok {
 			var data Response
 			if err := json.Unmarshal(message, &data); err != nil {
-				panic(err)
+				logger.Errorf("Response Marshal %v", err)
+				return
 			}
 			peer.handleResponse(data)
 		} else {
 			var data ResponseError
 			if err := json.Unmarshal(message, &data); err != nil {
-				panic(err)
+				logger.Errorf("ResponseError Marshal %v", err)
+				return
 			}
 			peer.handleResponseError(data)
 		}
 	} else if msg.Notification {
 		var data Notification
 		if err := json.Unmarshal(message, &data); err != nil {
-			panic(err)
+			logger.Errorf("Notification Marshal %v", err)
+			return
 		}
 		peer.handleNotification(data)
 	}
