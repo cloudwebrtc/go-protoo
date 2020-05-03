@@ -9,34 +9,23 @@ import (
 	"github.com/cloudwebrtc/go-protoo/transport"
 )
 
-func JsonEncode(str string) map[string]interface{} {
-	var data map[string]interface{}
-	if err := json.Unmarshal([]byte(str), &data); err != nil {
-		panic(err)
-	}
-	return data
-}
-
-type AcceptFunc func(data map[string]interface{})
-type RejectFunc func(errorCode int, errorReason string)
-
 var peerId = "go-client-id-xxxx"
 
 func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 	logger.Infof("handleWebSocketOpen")
 
-	peer := peer.NewPeer(peerId, transport)
-	peer.On("close", func(code int, err string) {
+	pr := peer.NewPeer(peerId, transport)
+	pr.On("close", func(code int, err string) {
 		logger.Infof("peer close [%d] %s", code, err)
 	})
 
-	handleRequest := func(request map[string]interface{}, accept AcceptFunc, reject RejectFunc) {
-		method := request["method"]
+	handleRequest := func(request peer.Request, accept peer.RespondFunc, reject peer.RejectFunc) {
+		method := request.Method
 		logger.Infof("handleRequest =>  (%s) ", method)
 		if method == "kick" {
 			reject(486, "Busy Here")
 		} else {
-			accept(JsonEncode(`{}`))
+			accept(nil)
 		}
 	}
 
@@ -45,36 +34,36 @@ func handleWebSocketOpen(transport *transport.WebSocketTransport) {
 	}
 
 	handleClose := func(code int, err string) {
-		logger.Infof("handleClose => peer (%s) [%d] %s", peer.ID(), code, err)
+		logger.Infof("handleClose => peer (%s) [%d] %s", pr.ID(), code, err)
 	}
 
-	peer.On("request", handleRequest)
-	peer.On("notification", handleNotification)
-	peer.On("close", handleClose)
+	pr.On("request", handleRequest)
+	pr.On("notification", handleNotification)
+	pr.On("close", handleClose)
 
-	peer.Request("login", JsonEncode(`{"username":"alice","password":"alicespass"}`),
-		func(result map[string]interface{}) {
+	pr.Request("login", json.RawMessage(`{"username":"alice","password":"alicespass"}`),
+		func(result json.RawMessage) {
 			logger.Infof("login success: =>  %s", result)
 		},
 		func(code int, err string) {
 			logger.Infof("login reject: %d => %s", code, err)
 		})
-	peer.Request("offer", JsonEncode(`{"sdp":"empty"}`),
-		func(result map[string]interface{}) {
+	pr.Request("offer", json.RawMessage(`{"sdp":"empty"}`),
+		func(result json.RawMessage) {
 			logger.Infof("offer success: =>  %s", result)
 		},
 		func(code int, err string) {
 			logger.Infof("offer reject: %d => %s", code, err)
 		})
 	/*
-		peer.Request("join", JsonEncode(`{"client":"aaa", "type":"sender"}`),
+		pr.Request("join", JsonEncode(`{"client":"aaa", "type":"sender"}`),
 			func(result map[string]interface{}) {
 				logger.Infof("join success: =>  %s", result)
 			},
 			func(code int, err string) {
 				logger.Infof("join reject: %d => %s", code, err)
 			})
-		peer.Request("publish", JsonEncode(`{"type":"sender", "jsep":{"type":"offer", "sdp":"111111111111111"}}`),
+		pr.Request("publish", JsonEncode(`{"type":"sender", "jsep":{"type":"offer", "sdp":"111111111111111"}}`),
 			func(result map[string]interface{}) {
 				logger.Infof("publish success: =>  %s", result)
 			},
