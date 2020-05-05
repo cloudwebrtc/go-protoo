@@ -5,8 +5,6 @@ import (
 
 	"github.com/cloudwebrtc/go-protoo/logger"
 	"github.com/cloudwebrtc/go-protoo/transport"
-
-	"github.com/chuckpreslar/emission"
 )
 
 type Transcation struct {
@@ -16,8 +14,16 @@ type Transcation struct {
 	close  func()
 }
 
+type PeerChans struct {
+	OnRequest      chan []byte
+	OnNotification chan transport.TransportErr
+	OnClose        chan transport.TransportErr
+	OnError        chan transport.TransportErr
+}
+
 type Peer struct {
-	emission.Emitter
+	// emission.Emitter
+	PeerChans
 	id           string
 	transport    *transport.WebSocketTransport
 	transcations map[int]*Transcation
@@ -25,25 +31,50 @@ type Peer struct {
 
 func NewPeer(id string, transport *transport.WebSocketTransport) *Peer {
 	var peer Peer
-	peer.Emitter = *emission.NewEmitter()
+	// peer.Emitter = *emission.NewEmitter()
 	peer.id = id
 	peer.transport = transport
-	peer.transport.On("message", peer.handleMessage)
-	peer.transport.On("close", func(code int, err string) {
-		logger.Infof("Transport closed [%d] %s", code, err)
-		peer.Emit("close", code, err)
-	})
-	peer.transport.On("error", func(code int, err string) {
-		logger.Warnf("Transport got error (%d, %s)", code, err)
-		peer.Emit("error", code, err)
-	})
+	// peer.transport.On("message", peer.handleMessage)/
+	// peer.transport.On("close", func(code int, err string) {
+	// 	logger.Infof("Transport closed [%d] %s", code, err)
+	// 	peer.Emit("close", code, err)
+	// })
+	// peer.transport.On("error", func(code int, err string) {
+	// 	logger.Warnf("Transport got error (%d, %s)", code, err)
+	// 	peer.Emit("error", code, err)
+	// })
 	peer.transcations = make(map[int]*Transcation)
 	return &peer
 }
 
+func (peer *Peer) Run() {
+	for {
+		select {
+		case msg := <-peer.transport.OnMsg:
+			peer.handleMessage(msg)
+
+		case err := <-peer.transport.OnErr:
+			peer.handleErr(err)
+
+		case err := <-peer.transport.OnClose:
+			peer.handleClose(err)
+		}
+	}
+}
+
+func (peer *Peer) handleClose(err transport.TransportErr) {
+	logger.Infof("Transport closed [%d] %s", err.Code, err.Text)
+	// peer.Emit("close", code, err)
+}
+
+func (peer *Peer) handleErr(err transport.TransportErr) {
+	logger.Warnf("Transport got error (%d, %s)", err.Code, err.Text)
+	// peer.Emit("error", code, err)
+}
+
 func (peer *Peer) Close() {
 	peer.transport.Close()
-	peer.Emit("close", 1000, "")
+	// peer.Emit("close", 1000, "")
 }
 
 func (peer *Peer) ID() string {
@@ -185,8 +216,8 @@ func (peer *Peer) handleRequest(request Request) {
 		logger.Infof("Reject [%s] => (errorCode:%d, errorReason:%s)", request.Method, errorCode, errorReason)
 		peer.transport.Send(string(str))
 	}
-
-	peer.Emit("request", request, accept, reject)
+	_, _ = accept, reject
+	// peer.Emit("request", request, accept, reject)
 }
 
 func (peer *Peer) handleResponse(response Response) {
@@ -214,5 +245,5 @@ func (peer *Peer) handleResponseError(response ResponseError) {
 }
 
 func (peer *Peer) handleNotification(notification Notification) {
-	peer.Emit("notification", notification)
+	// peer.Emit("notification", notification)
 }
