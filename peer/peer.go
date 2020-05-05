@@ -20,15 +20,20 @@ type RequestData struct {
 	Request Request
 }
 
+type SendRequestData struct {
+	*Request
+	*Transcation
+}
+
 type PeerChans struct {
 	OnRequest      chan RequestData
+	SendRequest    chan SendRequestData
 	OnNotification chan Notification
 	OnClose        chan transport.TransportErr
 	OnError        chan transport.TransportErr
 }
 
 type Peer struct {
-	// emission.Emitter
 	PeerChans
 	id           string
 	transport    *transport.WebSocketTransport
@@ -37,21 +42,12 @@ type Peer struct {
 
 func NewPeer(id string, con *transport.WebSocketTransport) *Peer {
 	var peer Peer
-	// peer.Emitter = *emission.NewEmitter()
 	peer.id = id
 	peer.transport = con
-	// peer.transport.On("message", peer.handleMessage)/
-	// peer.transport.On("close", func(code int, err string) {
-	// 	logger.Infof("Transport closed [%d] %s", code, err)
-	// 	peer.Emit("close", code, err)
-	// })
-	// peer.transport.On("error", func(code int, err string) {
-	// 	logger.Warnf("Transport got error (%d, %s)", code, err)
-	// 	peer.Emit("error", code, err)
-	// })
 	peer.PeerChans = PeerChans{
 		OnRequest:      make(chan RequestData),
 		OnNotification: make(chan Notification),
+		SendRequest:    make(chan SendRequestData),
 	}
 	peer.transcations = make(map[int]*Transcation)
 
@@ -70,8 +66,25 @@ func (peer *Peer) Run() {
 
 		case err := <-peer.transport.OnClose:
 			peer.handleClose(err)
+
+		case data := <-peer.SendRequest:
+			peer.sendRequest(data)
 		}
 	}
+}
+
+func (peer *Peer) sendRequest(req SendRequestData) {
+	request := req.Request
+
+	str, err := json.Marshal(request)
+	if err != nil {
+		logger.Errorf("Marshal %v", err)
+		return
+	}
+
+	peer.transcations[request.Id] = req.Transcation
+	logger.Infof("Send request [%s]", request.Method)
+	peer.transport.SendCh <- str
 }
 
 func (peer *Peer) handleClose(err transport.TransportErr) {
@@ -86,7 +99,6 @@ func (peer *Peer) handleErr(err transport.TransportErr) {
 
 func (peer *Peer) Close() {
 	peer.transport.Close()
-	// peer.Emit("close", 1000, "")
 }
 
 func (peer *Peer) ID() string {
@@ -106,11 +118,6 @@ func (peer *Peer) Request(method string, data interface{}, success AcceptFunc, r
 		Method:  method,
 		Data:    dataStr,
 	}
-	str, err := json.Marshal(request)
-	if err != nil {
-		logger.Errorf("Marshal %v", err)
-		return
-	}
 
 	transcation := &Transcation{
 		id:     id,
@@ -121,9 +128,7 @@ func (peer *Peer) Request(method string, data interface{}, success AcceptFunc, r
 		},
 	}
 
-	peer.transcations[id] = transcation
-	logger.Infof("Send request [%s]", method)
-	peer.transport.SendCh <- str
+	peer.SendRequest <- SendRequestData{request, transcation}
 }
 
 func (peer *Peer) Notify(method string, data interface{}) {
