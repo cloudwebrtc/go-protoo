@@ -14,8 +14,14 @@ type Transcation struct {
 	close  func()
 }
 
+type RequestData struct {
+	Accept  RespondFunc
+	Reject  RejectFunc
+	Request Request
+}
+
 type PeerChans struct {
-	OnRequest      chan []byte
+	OnRequest      chan RequestData
 	OnNotification chan transport.TransportErr
 	OnClose        chan transport.TransportErr
 	OnError        chan transport.TransportErr
@@ -29,11 +35,11 @@ type Peer struct {
 	transcations map[int]*Transcation
 }
 
-func NewPeer(id string, transport *transport.WebSocketTransport) *Peer {
+func NewPeer(id string, con *transport.WebSocketTransport) *Peer {
 	var peer Peer
 	// peer.Emitter = *emission.NewEmitter()
 	peer.id = id
-	peer.transport = transport
+	peer.transport = con
 	// peer.transport.On("message", peer.handleMessage)/
 	// peer.transport.On("close", func(code int, err string) {
 	// 	logger.Infof("Transport closed [%d] %s", code, err)
@@ -43,6 +49,10 @@ func NewPeer(id string, transport *transport.WebSocketTransport) *Peer {
 	// 	logger.Warnf("Transport got error (%d, %s)", code, err)
 	// 	peer.Emit("error", code, err)
 	// })
+	peer.PeerChans = PeerChans{
+		OnRequest:      make(chan RequestData),
+		OnNotification: make(chan transport.TransportErr),
+	}
 	peer.transcations = make(map[int]*Transcation)
 	return &peer
 }
@@ -196,7 +206,7 @@ func (peer *Peer) handleRequest(request Request) {
 		}
 		//send accept
 		logger.Infof("Accept [%s] => (%s)", request.Method, str)
-		peer.transport.Send(string(str))
+		peer.transport.SendCh <- str
 	}
 
 	reject := func(errorCode int, errorReason string) {
@@ -214,9 +224,14 @@ func (peer *Peer) handleRequest(request Request) {
 		}
 		//send reject
 		logger.Infof("Reject [%s] => (errorCode:%d, errorReason:%s)", request.Method, errorCode, errorReason)
-		peer.transport.Send(string(str))
+		peer.transport.SendCh <- str
 	}
 	_, _ = accept, reject
+	peer.OnRequest <- RequestData{
+		Accept:  accept,
+		Reject:  reject,
+		Request: request,
+	}
 	// peer.Emit("request", request, accept, reject)
 }
 

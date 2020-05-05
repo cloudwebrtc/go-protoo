@@ -2,7 +2,6 @@ package transport
 
 import (
 	"errors"
-	"net"
 	"sync"
 	"time"
 
@@ -33,6 +32,7 @@ type TransportChans struct {
 	OnMsg chan []byte
 	OnErr chan TransportErr
 	OnClose chan TransportErr
+	SendCh chan []byte
 }
 
 type WebSocketTransport struct {
@@ -61,57 +61,58 @@ func NewWebSocketTransport(socket *websocket.Conn) *WebSocketTransport {
 		OnMsg: make(chan []byte),
 		OnErr: make(chan TransportErr),
 		OnClose: make(chan TransportErr),
+		SendCh: make(chan []byte),
 	}
 	return &transport
 }
-
-func (transport *WebSocketTransport) ReadMessage() {
-	in := make(chan []byte)
-	stop := make(chan struct{})
-	// pingTicker := time.NewTicker(pingPeriod)
-
-	var c = transport.socket
-	go func() {
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				logger.Warnf("Got error: %v", err)
-				if c, k := err.(*websocket.CloseError); k {
-					transport.OnClose <- TransportErr{c.Code, c.Text}
-					// transport.Emit("error", c.Code, c.Text)
-				} else {
-					if c, k := err.(*net.OpError); k {
-						transport.OnClose <- TransportErr{1008, c.Error()}
-						// transport.Emit("error", 1008, c.Error())
-					}
-				}
-				close(stop)
-				break
-			}
-			in <- message
-		}
-	}()
-
-	// for {
-	// 	select {
-	// 	case _ = <-pingTicker.C:
-	// 		logger.Debugf("Send keepalive !!!")
-	// 		if err := transport.Send(websocket.PingMessage); err != nil {
-	// 			logger.Errorf("Keepalive has failed")
-	// 			pingTicker.Stop()
-	// 			return
-	// 		}
-	// 	case message := <-in:
-	// 		{
-	// 			logger.Infof("Recivied data: %s", message)
-	// 			// transport.Emit("message", []byte(message))
-	// 			transport.OnMsg <- []byte(message)
-	// 		}
-	// 	case <-stop:
-	// 		return
-	// 	}
-	// }
-}
+//
+// func (transport *WebSocketTransport) ReadMessage() {
+// 	in := make(chan []byte)
+// 	stop := make(chan struct{})
+// 	// pingTicker := time.NewTicker(pingPeriod)
+//
+// 	var c = transport.socket
+// 	go func() {
+// 		for {
+// 			_, message, err := c.ReadMessage()
+// 			if err != nil {
+// 				logger.Warnf("Got error: %v", err)
+// 				if c, k := err.(*websocket.CloseError); k {
+// 					transport.OnClose <- TransportErr{c.Code, c.Text}
+// 					// transport.Emit("error", c.Code, c.Text)
+// 				} else {
+// 					if c, k := err.(*net.OpError); k {
+// 						transport.OnClose <- TransportErr{1008, c.Error()}
+// 						// transport.Emit("error", 1008, c.Error())
+// 					}
+// 				}
+// 				close(stop)
+// 				break
+// 			}
+// 			in <- message
+// 		}
+// 	}()
+//
+// 	// for {
+// 	// 	select {
+// 	// 	case _ = <-pingTicker.C:
+// 	// 		logger.Debugf("Send keepalive !!!")
+// 	// 		if err := transport.Send(websocket.PingMessage); err != nil {
+// 	// 			logger.Errorf("Keepalive has failed")
+// 	// 			pingTicker.Stop()
+// 	// 			return
+// 	// 		}
+// 	// 	case message := <-in:
+// 	// 		{
+// 	// 			logger.Infof("Recivied data: %s", message)
+// 	// 			// transport.Emit("message", []byte(message))
+// 	// 			transport.OnMsg <- []byte(message)
+// 	// 		}
+// 	// 	case <-stop:
+// 	// 		return
+// 	// 	}
+// 	// }
+// }
 
 func (transport *WebSocketTransport) Start() {
 	go transport.ReadLoop()
@@ -119,11 +120,6 @@ func (transport *WebSocketTransport) Start() {
 }
 
 func (transport *WebSocketTransport) ReadLoop() {
-	defer func() {
-		transport.socket.Close()
-
-	}()
-
 	transport.socket.SetReadLimit(maxMessageSize)
 	transport.socket.SetReadDeadline(time.Now().Add(pongWait))
 	transport.socket.SetPongHandler(func(string) error {
@@ -141,12 +137,12 @@ func (transport *WebSocketTransport) ReadLoop() {
 		}
 
 		logger.Infof("Received: %s\n", message)
+		transport.OnMsg <- []byte(message)
 		// c.processIncoming(message)
 	}
 }
 
 func (transport *WebSocketTransport) WriteLoop() {
-	sendCh := make(chan []byte)
 	stop := make(chan struct{})
 	pingTicker := time.NewTicker(pingPeriod)
 
@@ -159,7 +155,7 @@ func (transport *WebSocketTransport) WriteLoop() {
 				pingTicker.Stop()
 				return
 			}
-		case message := <-sendCh:
+		case message := <-transport.SendCh:
 			{
 				logger.Infof("Recivied data: %s", message)
 				if transport.closed {

@@ -47,6 +47,8 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 
 	pr := testRoom.CreatePeer(peerId, transport)
 
+	go pr.Run()
+
 	handleRequest := func(request peer.Request, accept peer.RespondFunc, reject peer.RejectFunc) {
 		method := request.Method
 
@@ -75,15 +77,15 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 		}
 
 		/*send `kick` request to peer*/
-		pr.Request("kick", KickMsg{Reason: "go away!"},
-			func(result json.RawMessage) {
-				logger.Infof("kick success: =>  %s", result)
-				// close transport
-				pr.Close()
-			},
-			func(code int, err string) {
-				logger.Infof("kick reject: %d => %s", code, err)
-			})
+		// pr.Request("kick", KickMsg{Reason: "go away!"},
+		// 	func(result json.RawMessage) {
+		// 		logger.Infof("kick success: =>  %s", result)
+		// 		// close transport
+		// 		pr.Close()
+		// 	},
+		// 	func(code int, err string) {
+		// 		logger.Infof("kick reject: %d => %s", code, err)
+		// 	})
 	}
 
 	handleNotification := func(notification map[string]interface{}) {
@@ -105,6 +107,18 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 	// pr.On("request", handleRequest)
 	// pr.On("notification", handleNotification)
 	// pr.On("close", handleClose)
+
+	for {
+		select {
+		case msg := <-pr.OnNotification:
+			log.Println(msg)
+		case msg := <-pr.OnRequest:
+			handleRequest(msg.Request, msg.Accept, msg.Reject)
+			// log.Println(msg)
+		case msg := <-pr.OnClose:
+			log.Println(msg)
+		}
+	}
 }
 
 func main() {
