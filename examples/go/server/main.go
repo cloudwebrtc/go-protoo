@@ -47,8 +47,6 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 
 	pr := testRoom.CreatePeer(peerId, transport)
 
-	go pr.Run()
-
 	handleRequest := func(request peer.Request, accept peer.RespondFunc, reject peer.RejectFunc) {
 		method := request.Method
 

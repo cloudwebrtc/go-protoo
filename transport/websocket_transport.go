@@ -169,7 +169,7 @@ func (transport *WebSocketTransport) WriteLoop() {
 		select {
 		case _ = <-pingTicker.C:
 			logger.Debugf("Send keepalive !!!")
-			if err := transport.socket.WriteMessage(websocket.TextMessage, nil); err != nil {
+			if err := transport.socket.WriteMessage(websocket.PingMessage, nil); err != nil {
 				logger.Errorf("Keepalive has failed")
 				pingTicker.Stop()
 				// TODO Trigger close

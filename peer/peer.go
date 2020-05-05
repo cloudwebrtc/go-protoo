@@ -22,7 +22,7 @@ type RequestData struct {
 
 type PeerChans struct {
 	OnRequest      chan RequestData
-	OnNotification chan transport.TransportErr
+	OnNotification chan Notification
 	OnClose        chan transport.TransportErr
 	OnError        chan transport.TransportErr
 }
@@ -51,9 +51,11 @@ func NewPeer(id string, con *transport.WebSocketTransport) *Peer {
 	// })
 	peer.PeerChans = PeerChans{
 		OnRequest:      make(chan RequestData),
-		OnNotification: make(chan transport.TransportErr),
+		OnNotification: make(chan Notification),
 	}
 	peer.transcations = make(map[int]*Transcation)
+
+	go peer.Run()
 	return &peer
 }
 

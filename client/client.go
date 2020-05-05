@@ -47,58 +47,10 @@ func NewClient(url string, handleWebSocket func(ws *transport.WebSocketTransport
 	client.socket = socket
 	client.handleWebSocket = handleWebSocket
 	client.transport = transport.NewWebSocketTransport(socket)
+	client.transport.Start()
 	client.handleWebSocket(client.transport)
 	return &client
 }
-
-// func (client *WebSocketClient) ReadMessage() {
-// 	if client == nil {
-// 		logger.Errorf("Client is nil")
-// 		return
-// 	}
-// 	in := make(chan []byte)
-// 	stop := make(chan struct{})
-// 	pingTicker := time.NewTicker(pingPeriod)
-// 	var c = client.socket
-// 	var transport = client.transport
-// 	go func() {
-// 		for {
-// 			_, message, err := c.ReadMessage()
-// 			if err != nil {
-// 				logger.Warnf("Got error: %v", err)
-// 				if c, k := err.(*websocket.CloseError); k {
-// 					transport.Emit("error", c.Code, c.Text)
-// 				} else {
-// 					if c, k := err.(*net.OpError); k {
-// 						transport.Emit("error", 1008, c.Error())
-// 					}
-// 				}
-// 				close(stop)
-// 				break
-// 			}
-// 			in <- message
-// 		}
-// 	}()
-//
-// 	for {
-// 		select {
-// 		case <-stop:
-// 			return
-// 		case message := <-in:
-// 			{
-// 				logger.Infof("Recivied data: %s", message)
-// 				transport.Emit("message", []byte(message))
-// 			}
-// 		case _ = <-pingTicker.C:
-// 			logger.Infof("Send keepalive !!!")
-// 			if err := transport.Send("{}"); err != nil {
-// 				logger.Errorf("Keepalive has failed")
-// 				pingTicker.Stop()
-// 				return
-// 			}
-// 		}
-// 	}
-// }
 
 func (client *WebSocketClient) GetTransport() *transport.WebSocketTransport {
 	return client.transport
