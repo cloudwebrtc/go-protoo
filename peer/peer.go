@@ -121,7 +121,7 @@ func (peer *Peer) Request(method string, data interface{}, success AcceptFunc, r
 
 	peer.transcations[id] = transcation
 	logger.Infof("Send request [%s]", method)
-	peer.transport.Send(string(str))
+	peer.transport.SendCh <- str
 }
 
 func (peer *Peer) Notify(method string, data interface{}) {
@@ -141,7 +141,7 @@ func (peer *Peer) Notify(method string, data interface{}) {
 		return
 	}
 	logger.Infof("Send notification [%s]", method)
-	peer.transport.Send(string(str))
+	peer.transport.SendCh <- str
 }
 
 func (peer *Peer) handleMessage(message []byte) {
