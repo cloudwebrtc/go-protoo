@@ -6,32 +6,50 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chuckpreslar/emission"
 	"github.com/cloudwebrtc/go-protoo/logger"
 	"github.com/gorilla/websocket"
 )
 
 const pingPeriod = 5 * time.Second
 
+type TransportErr struct {
+	Code int
+	Text string
+}
+
+type TransportChans struct {
+	onMsg chan []byte
+	onErr chan TransportErr
+	onClose chan TransportErr
+}
+
 type WebSocketTransport struct {
-	emission.Emitter
+	TransportChans
 	socket *websocket.Conn
 	mutex  *sync.Mutex
 	closed bool
 }
 
+
+
 func NewWebSocketTransport(socket *websocket.Conn) *WebSocketTransport {
 	var transport WebSocketTransport
-	transport.Emitter = *emission.NewEmitter()
 	transport.socket = socket
 	transport.mutex = new(sync.Mutex)
 	transport.closed = false
+
 	transport.socket.SetCloseHandler(func(code int, text string) error {
 		logger.Warnf("%s [%d]", text, code)
-		transport.Emit("close", code, text)
+		transport.onClose <- TransportErr{code, text}
 		transport.closed = true
 		return nil
 	})
+
+	transport.TransportChans = TransportChans{
+		onMsg: make(chan []byte),
+		onErr: make(chan TransportErr),
+		onClose: make(chan TransportErr),
+	}
 	return &transport
 }
 
@@ -47,10 +65,12 @@ func (transport *WebSocketTransport) ReadMessage() {
 			if err != nil {
 				logger.Warnf("Got error: %v", err)
 				if c, k := err.(*websocket.CloseError); k {
-					transport.Emit("error", c.Code, c.Text)
+					transport.onClose <- TransportErr{c.Code, c.Text}
+					// transport.Emit("error", c.Code, c.Text)
 				} else {
 					if c, k := err.(*net.OpError); k {
-						transport.Emit("error", 1008, c.Error())
+						transport.onClose <- TransportErr{1008, c.Error()}
+						// transport.Emit("error", 1008, c.Error())
 					}
 				}
 				close(stop)
@@ -72,7 +92,8 @@ func (transport *WebSocketTransport) ReadMessage() {
 		case message := <-in:
 			{
 				logger.Infof("Recivied data: %s", message)
-				transport.Emit("message", []byte(message))
+				// transport.Emit("message", []byte(message))
+				transport.onMsg <- []byte(message)
 			}
 		case <-stop:
 			return
