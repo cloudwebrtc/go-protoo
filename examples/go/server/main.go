@@ -105,12 +105,13 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 	for {
 		select {
 		case msg := <-pr.OnNotification:
-			log.Println(msg)
+			log.Println("OnNotification msg", msg)
+			// handleNotification
 		case msg := <-pr.OnRequest:
 			handleRequest(msg.Request, msg.Accept, msg.Reject)
 			// log.Println(msg)
 		case msg := <-pr.OnClose:
-			log.Println(msg)
+			log.Println("Close msg", msg)
 		}
 	}
 }
