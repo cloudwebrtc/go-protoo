@@ -19,7 +19,7 @@ const (
 	pingPeriod = 5 * time.Second //(pongWait * 8) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 4096
+	maxMessageSize = 131072 //128k
 )
 
 type TransportErr struct {
