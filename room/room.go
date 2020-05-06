@@ -27,16 +27,7 @@ func NewRoom(roomId string) *Room {
 
 func (room *Room) CreatePeer(peerId string, transport *transport.WebSocketTransport) *peer.Peer {
 	newPeer := peer.NewPeer(peerId, transport)
-	// newPeer.On("close", func(code int, err string) {
-	go func() {
-		<-newPeer.OnClose
-		room.Lock()
-		defer room.Unlock()
-		delete(room.peers, peerId)
-	}()
-	room.Lock()
-	defer room.Unlock()
-	room.peers[peerId] = newPeer
+	// Maybe add peer here
 	return newPeer
 }
 
@@ -44,13 +35,8 @@ func (room *Room) AddPeer(newPeer *peer.Peer) {
 	room.Lock()
 	defer room.Unlock()
 	room.peers[newPeer.ID()] = newPeer
-	// newPeer.On("close", func(code int, err string) {
-	go func() {
-		<-newPeer.OnClose
-		room.Lock()
-		defer room.Unlock()
-		delete(room.peers, newPeer.ID())
-	}()
+
+	// TODO auto disconnect from all rooms, but client does this too..
 }
 
 func (room *Room) GetPeer(peerId string) *peer.Peer {

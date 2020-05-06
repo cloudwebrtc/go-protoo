@@ -45,9 +45,10 @@ func NewPeer(id string, con *transport.WebSocketTransport) *Peer {
 	peer.id = id
 	peer.transport = con
 	peer.PeerChans = PeerChans{
-		OnRequest:      make(chan RequestData),
-		OnNotification: make(chan Notification),
-		SendRequest:    make(chan SendRequestData),
+		OnRequest:      make(chan RequestData, 100),
+		OnNotification: make(chan Notification, 100),
+		SendRequest:    make(chan SendRequestData, 100),
+		OnClose:        make(chan transport.TransportErr, 1),
 	}
 	peer.transcations = make(map[int]*Transcation)
 
@@ -60,13 +61,10 @@ func (peer *Peer) Run() {
 		select {
 		case msg := <-peer.transport.OnMsg:
 			peer.handleMessage(msg)
-
 		case err := <-peer.transport.OnErr:
 			peer.handleErr(err)
-
 		case err := <-peer.transport.OnClose:
 			peer.handleClose(err)
-
 		case data := <-peer.SendRequest:
 			peer.sendRequest(data)
 		}
@@ -89,7 +87,7 @@ func (peer *Peer) sendRequest(req SendRequestData) {
 
 func (peer *Peer) handleClose(err transport.TransportErr) {
 	logger.Infof("Transport closed [%d] %s", err.Code, err.Text)
-	// peer.Emit("close", code, err)
+	peer.OnClose <- err
 }
 
 func (peer *Peer) handleErr(err transport.TransportErr) {

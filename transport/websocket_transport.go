@@ -133,15 +133,20 @@ func (transport *WebSocketTransport) ReadLoop() {
 		return nil
 	})
 
-	for !transport.closed {
+	stop := false
+
+	for !stop {
 		_, message, err := transport.socket.ReadMessage()
 		if err != nil {
 			logger.Warnf("Got error: %v", err)
 			if c, k := err.(*websocket.CloseError); k {
 				transport.OnClose <- TransportErr{c.Code, c.Text}
+				logger.Debugf("Send close msg")
+				stop = true
 				// transport.Emit("error", c.Code, c.Text)
 			} else {
 				if c, k := err.(*net.OpError); k {
+					logger.Debugf("Send err msg")
 					transport.OnClose <- TransportErr{1008, c.Error()}
 					// transport.Emit("error", 1008, c.Error())
 				}
@@ -150,13 +155,15 @@ func (transport *WebSocketTransport) ReadLoop() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				logger.Errorf("Error reading message: %v\n", err)
 			}
-			break
+			continue
 		}
 
 
 		logger.Infof("Received: %s", message)
 		transport.OnMsg <- []byte(message)
 	}
+
+	logger.Debugf("EXITING READ LOOP")
 }
 
 func (transport *WebSocketTransport) WriteLoop() {
@@ -170,7 +177,7 @@ func (transport *WebSocketTransport) WriteLoop() {
 		case _ = <-pingTicker.C:
 			logger.Debugf("Send keepalive !!!")
 			if err := transport.socket.WriteMessage(websocket.PingMessage, nil); err != nil {
-				logger.Errorf("Keepalive has failed")
+				logger.Warnf("Keepalive has failed")
 				pingTicker.Stop()
 				// TODO Trigger close
 				doneC = true
@@ -197,8 +204,7 @@ func (transport *WebSocketTransport) WriteLoop() {
 			break
 		}
 	}
-	logger.Infof("exited write loop")
-
+	logger.Debugf("exited ws write loop")
 }
 
 /*
@@ -226,10 +232,10 @@ func (transport *WebSocketTransport) close() {
 	transport.mutex.Lock()
 	defer transport.mutex.Unlock()
 	if transport.closed == false {
-		logger.Infof("Close ws transport now : ")
+		logger.Debugf("Close ws transport now")
 		transport.socket.Close()
 		transport.closed = true
 	} else {
-		logger.Warnf("Transport already closed :")
+		logger.Warnf("Transport already closed")
 	}
 }
