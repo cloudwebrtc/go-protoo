@@ -88,7 +88,7 @@ func (transport *WebSocketTransport) ReadLoop() {
 	for {
 		_, message, err := transport.socket.ReadMessage()
 		if err != nil {
-			logger.Warnf("Got error: %v", err)
+			logger.Debugf("Got error: %v", err)
 			break
 		}
 
