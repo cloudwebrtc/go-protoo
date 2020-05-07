@@ -92,7 +92,7 @@ func (transport *WebSocketTransport) ReadLoop() {
 			break
 		}
 
-		logger.Infof("Received: %s", message)
+		logger.Debugf("Received: %s", message)
 		transport.OnMsg <- []byte(message)
 
 		// Check stop
@@ -129,7 +129,7 @@ func (transport *WebSocketTransport) WriteLoop() {
 			}
 		case message := <-transport.SendCh:
 			{
-				logger.Infof("Send data: %s", message)
+				logger.Debugf("Send data: %s", message)
 				err := transport.socket.WriteMessage(websocket.TextMessage, message)
 				// TODO handle send error
 				if err != nil {

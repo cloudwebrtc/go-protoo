@@ -7,11 +7,14 @@ import (
 	"github.com/cloudwebrtc/go-protoo/transport"
 )
 
+type PeerErr transport.TransportErr
+
 type Transcation struct {
-	id     int
-	accept AcceptFunc
-	reject RejectFunc
-	close  func()
+	id         int
+	accept     AcceptFunc
+	reject     RejectFunc
+	close      func()
+	resultChan chan ResultFuture
 }
 
 type RequestData struct {
@@ -103,13 +106,21 @@ func (peer *Peer) ID() string {
 	return peer.id
 }
 
-func (peer *Peer) Request(method string, data interface{}, success AcceptFunc, reject RejectFunc) {
+type ResultFuture struct {
+	Result json.RawMessage
+	Err    *PeerErr
+}
+
+func (peer *Peer) Request(method string, data interface{}, success AcceptFunc, reject RejectFunc) chan ResultFuture {
 	id := GenerateRandomNumber()
+	resChan := make(chan ResultFuture, 1)
 	dataStr, err := json.Marshal(data)
 	if err != nil {
 		logger.Errorf("Marshal data %v", err)
-		return
+		resChan <- ResultFuture{nil, &PeerErr{10, err.Error()}}
+		return resChan
 	}
+
 	request := &Request{
 		Request: true,
 		Id:      id,
@@ -124,9 +135,11 @@ func (peer *Peer) Request(method string, data interface{}, success AcceptFunc, r
 		close: func() {
 			logger.Infof("Transport closed !")
 		},
+		resultChan: resChan,
 	}
 
 	peer.SendRequest <- SendRequestData{request, transcation}
+	return resChan
 }
 
 func (peer *Peer) Notify(method string, data interface{}) {
@@ -248,7 +261,11 @@ func (peer *Peer) handleResponse(response Response) {
 		return
 	}
 
-	transcation.accept(response.Data)
+	if transcation.accept != nil {
+		transcation.accept(response.Data)
+	}
+	transcation.resultChan <- ResultFuture{response.Data, nil}
+
 	delete(peer.transcations, id)
 }
 
@@ -260,10 +277,17 @@ func (peer *Peer) handleResponseError(response ResponseError) {
 		return
 	}
 
-	transcation.reject(response.ErrorCode, response.ErrorReason)
+	if transcation.reject != nil {
+		transcation.reject(response.ErrorCode, response.ErrorReason)
+	}
+	transcation.resultChan <- ResultFuture{nil, &PeerErr{
+		Code: response.ErrorCode,
+		Text: response.ErrorReason,
+	}}
+
 	delete(peer.transcations, id)
 }
 
 func (peer *Peer) handleNotification(notification Notification) {
-	// peer.Emit("notification", notification)
+	peer.OnNotification <- notification
 }
