@@ -53,8 +53,9 @@ func (server *WebSocketServer) handleWebSocketRequest(writer http.ResponseWriter
 		panic(err)
 	}
 	wsTransport := transport.NewWebSocketTransport(socket)
+	wsTransport.Start()
+
 	server.handleWebSocket(wsTransport, request)
-	wsTransport.ReadMessage()
 }
 
 func (server *WebSocketServer) Bind(cfg WebSocketServerConfig) {

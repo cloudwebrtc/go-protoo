@@ -5,12 +5,12 @@
 ```
 git clone https://github.com/cloudwebrtc/go-protoo
 cd go-protoo/examples/go
-go run server.go
+go run server/main.go
 ```
 ### Golang client test.
 ```
 cd go-protoo/examples/go
-go run client.go
+go run client/main.go
 ```
 ### JS client test.
 ```
