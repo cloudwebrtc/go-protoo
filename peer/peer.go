@@ -95,7 +95,7 @@ func (peer *Peer) handleClose(err transport.TransportErr) {
 
 func (peer *Peer) handleErr(err transport.TransportErr) {
 	logger.Warnf("Transport got error (%d, %s)", err.Code, err.Text)
-	// peer.Emit("error", code, err)
+	// Transport error triggers close currently
 }
 
 func (peer *Peer) Close() {
@@ -250,7 +250,6 @@ func (peer *Peer) handleRequest(request Request) {
 		Reject:  reject,
 		Request: request,
 	}
-	// peer.Emit("request", request, accept, reject)
 }
 
 func (peer *Peer) handleResponse(response Response) {
@@ -263,8 +262,9 @@ func (peer *Peer) handleResponse(response Response) {
 
 	if transcation.accept != nil {
 		transcation.accept(response.Data)
+	} else {
+		transcation.resultChan <- ResultFuture{response.Data, nil}
 	}
-	transcation.resultChan <- ResultFuture{response.Data, nil}
 
 	delete(peer.transcations, id)
 }
@@ -279,11 +279,12 @@ func (peer *Peer) handleResponseError(response ResponseError) {
 
 	if transcation.reject != nil {
 		transcation.reject(response.ErrorCode, response.ErrorReason)
+	} else {
+		transcation.resultChan <- ResultFuture{nil, &PeerErr{
+			Code: response.ErrorCode,
+			Text: response.ErrorReason,
+		}}
 	}
-	transcation.resultChan <- ResultFuture{nil, &PeerErr{
-		Code: response.ErrorCode,
-		Text: response.ErrorReason,
-	}}
 
 	delete(peer.transcations, id)
 }

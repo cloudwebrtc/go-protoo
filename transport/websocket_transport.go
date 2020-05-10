@@ -73,7 +73,7 @@ func (transport *WebSocketTransport) Start() {
 
 func (transport *WebSocketTransport) ReadLoop() {
 	defer func() {
-		logger.Debugf("EXITING READ LOOP")
+		logger.Debugf("Exiting transport ReadLoop")
 		// Signal stop if not already in progress
 		transport.Stop()
 	}()
@@ -109,7 +109,7 @@ func (transport *WebSocketTransport) ReadLoop() {
 
 func (transport *WebSocketTransport) WriteLoop() {
 	defer func() {
-		logger.Debugf("exited ws write loop")
+		logger.Debugf("Exiting transport WriteLoop")
 		// Make sure the whole transport is marked for stop if not already
 		transport.Stop()
 		// Shut down the connection. Will kill reader if blocked on read
@@ -141,20 +141,6 @@ func (transport *WebSocketTransport) WriteLoop() {
 		}
 	}
 }
-
-/*
-* Send |message| to the connection.
- */
-// func (transport *WebSocketTransport) Send(message string) error {
-// 	logger.Infof("Send data: %s", message)
-// 	transport.mutex.Lock()
-// 	defer transport.mutex.Unlock()
-// 	if transport.closed {
-// 		return errors.New("websocket: write closed")
-// 	}
-// 	return transport.socket.WriteMessage(websocket.TextMessage, []byte(message))
-// }
-
 
 func (transport *WebSocketTransport) Close() {
  transport.Stop()
