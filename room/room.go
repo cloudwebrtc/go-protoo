@@ -77,7 +77,7 @@ func (room *Room) HasPeer(peerId string) bool {
 	return ok
 }
 
-func (room *Room) Notify(from *peer.Peer, method string, data map[string]interface{}) {
+func (room *Room) Notify(from *peer.Peer, method string, data interface{}) {
 	room.Lock()
 	defer room.Unlock()
 	for id, peer := range room.peers {
