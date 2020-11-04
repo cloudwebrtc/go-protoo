@@ -1,68 +1,27 @@
 package logger
 
 import (
-	"os"
-	"time"
-
-	"github.com/rs/zerolog"
-)
-
-var log zerolog.Logger
-
-// Level defines log levels.
-type Level uint8
-
-const (
-	// DebugLevel defines debug log level.
-	DebugLevel Level = iota
-	// InfoLevel defines info log level.
-	InfoLevel
-	// WarnLevel defines warn log level.
-	WarnLevel
-	// ErrorLevel defines error log level.
-	ErrorLevel
-	// FatalLevel defines fatal log level.
-	FatalLevel
-	// PanicLevel defines panic log level.
-	PanicLevel
-	// NoLevel defines an absent log level.
-	NoLevel
-	// Disabled disables the logger.
-	Disabled
+	log "github.com/pion/ion-log"
 )
 
 func init() {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	// zerolog.TimestampFunc = func() time.Time {
-	// return time.Date(2008, 1, 8, 17, 5, 05, 0, time.UTC)
-	// }
-	// zerolog.TimeFieldFormat = "2006-01-02 15:04:05"
-	// log = zerolog.New(os.Stdout).With().Timestamp().Logger()
-	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	log = zerolog.New(output).With().Timestamp().Logger()
-	SetLevel(DebugLevel)
-}
-
-func SetLevel(l Level) {
-	zerolog.SetGlobalLevel(zerolog.Level(l))
+	fixByFile := []string{"asm_amd64.s", "proc.go"}
+	fixByFunc := []string{}
+	log.Init("debug", fixByFile, fixByFunc)
 }
 
 func Infof(format string, v ...interface{}) {
-	log.Info().Msgf(format, v...)
+	log.Infof(format, v...)
 }
 
 func Debugf(format string, v ...interface{}) {
-	log.Debug().Msgf(format, v...)
+	log.Debugf(format, v...)
 }
 
 func Warnf(format string, v ...interface{}) {
-	log.Warn().Msgf(format, v...)
+	log.Warnf(format, v...)
 }
 
 func Errorf(format string, v ...interface{}) {
-	log.Error().Msgf(format, v...)
-}
-
-func Panicf(format string, v ...interface{}) {
-	log.Panic().Msgf(format, v...)
+	log.Errorf(format, v...)
 }
