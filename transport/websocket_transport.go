@@ -41,6 +41,7 @@ type WebSocketTransport struct {
 	stop chan bool
 	stopLock sync.RWMutex
 	shutdown bool
+	tErr *TransportErr
 }
 
 
@@ -49,10 +50,12 @@ func NewWebSocketTransport(socket *websocket.Conn) *WebSocketTransport {
 	var transport WebSocketTransport
 	transport.socket = socket
 	transport.closed = false
+	transport.tErr = nil
 	transport.stop = make(chan bool, 100)
 
 	transport.socket.SetCloseHandler(func(code int, text string) error {
 		logger.Warnf("On transport close %s [%d]", text, code)
+		transport.tErr = &TransportErr{code, text}
 		transport.Stop()
 		return nil
 	})
@@ -88,6 +91,9 @@ func (transport *WebSocketTransport) ReadLoop() {
 	for {
 		_, message, err := transport.socket.ReadMessage()
 		if err != nil {
+			if wsErr, ok := err.(*websocket.CloseError); ok {
+				transport.tErr = &TransportErr{wsErr.Code, wsErr.Text}
+			}
 			logger.Debugf("Got error: %v", err)
 			break
 		}
@@ -125,6 +131,9 @@ func (transport *WebSocketTransport) WriteLoop() {
 			if err := transport.socket.WriteMessage(websocket.PingMessage, nil); err != nil {
 				logger.Warnf("Keepalive has failed")
 				pingTicker.Stop()
+				if wsErr, ok := err.(*websocket.CloseError); ok {
+					transport.tErr = &TransportErr{wsErr.Code, wsErr.Text}
+				}
 				return
 			}
 		case message := <-transport.SendCh:
@@ -170,7 +179,12 @@ func (transport *WebSocketTransport) close() {
 		logger.Debugf("Close ws transport now")
 		transport.socket.Close()
 		transport.closed = true
-		transport.OnClose <- TransportErr{100, "Closed"}
+		if transport.tErr != nil {
+			transport.OnClose <- *transport.tErr
+
+		} else {
+			transport.OnClose <- TransportErr{100, "Closed"}
+		}
 	} else {
 		logger.Warnf("Transport already closed")
 	}
